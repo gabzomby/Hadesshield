@@ -12,7 +12,7 @@ $email = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = strtolower(trim($_POST['email'] ?? ''));
     $mdp = $_POST['mot_de_passe'] ?? '';
-    $ip = $_SERVER['REMOTE_ADDR'] ?? 'inconnue';
+    $ip = ip_visiteur();
 
     if (!csrf_valide()) {
         $erreur = 'Session expirée, veuillez réessayer.';

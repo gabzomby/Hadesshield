@@ -200,6 +200,50 @@ function csrf_valide(): bool
     return isset($_POST['csrf']) && hash_equals(csrf_token(), $_POST['csrf']);
 }
 
+// ---------- Adresse IP du visiteur ----------
+// Le site est derrière Cloudflare : REMOTE_ADDR est alors l'adresse d'un serveur Cloudflare,
+// et la vraie adresse arrive dans l'en-tête CF-Connecting-IP. On ne croit cet en-tête que si
+// la requête vient bien de Cloudflare, sinon n'importe qui pourrait s'inventer une adresse.
+// Plages officielles : https://www.cloudflare.com/ips/ (à mettre à jour si elles changent)
+const PLAGES_CLOUDFLARE = [
+    '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18',
+    '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17',
+    '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+    '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32',
+    '2a06:98c0::/29', '2c0f:f248::/32',
+];
+
+function ip_dans_plage(string $ip, string $plage): bool
+{
+    [$reseau, $bits] = explode('/', $plage);
+    $a = inet_pton($ip);
+    $b = inet_pton($reseau);
+    if ($a === false || $b === false || strlen($a) !== strlen($b)) {
+        return false;
+    }
+    $octets = intdiv((int) $bits, 8);
+    $reste = (int) $bits % 8;
+    if (substr($a, 0, $octets) !== substr($b, 0, $octets)) {
+        return false;
+    }
+    $masque = (0xFF << (8 - $reste)) & 0xFF;
+    return $reste === 0 || ((ord($a[$octets]) & $masque) === (ord($b[$octets]) & $masque));
+}
+
+function ip_visiteur(): string
+{
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $cf = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '';
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+        foreach (PLAGES_CLOUDFLARE as $plage) {
+            if (ip_dans_plage($ip, $plage)) {
+                return $cf;
+            }
+        }
+    }
+    return $ip !== '' ? $ip : 'inconnue';
+}
+
 // ---------- Limitation des tentatives de connexion ----------
 const MAX_TENTATIVES = 5;      // tentatives échouées autorisées
 const FENETRE_TENTATIVES = 900; // sur 15 minutes
@@ -500,7 +544,7 @@ function journaliser_visite(string $page): void
         $pays = strtoupper($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '');
         db()->prepare('INSERT INTO evenements (site_id, date, ip, methode, chemin, user_agent, verdict, categorie, bot, pays)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-            ->execute([$site_id, time(), $_SERVER['REMOTE_ADDR'] ?? null, $_SERVER['REQUEST_METHOD'] ?? 'GET',
+            ->execute([$site_id, time(), ip_visiteur(), $_SERVER['REQUEST_METHOD'] ?? 'GET',
                 substr(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'), 0, 2000), $ua ?: null, 'autorise', $categorie, $bot,
                 preg_match('/^[A-Z]{2}$/', $pays) && !in_array($pays, ['XX', 'T1'], true) ? $pays : null]);
     } catch (Throwable $e) {
