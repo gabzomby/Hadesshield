@@ -1,3 +1,8 @@
 # Page d'erreur personnalisée sous Apache.
 # Si le site est installé dans un sous-dossier, adapter le chemin (ex. /monsite/404.php).
 ErrorDocument 404 /404.php
+
+# Redirige tout le trafic http:// vers https:// (certificat Let's Encrypt OVH).
+RewriteEngine On
+RewriteCond %{SERVER_PORT} 80
+RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
