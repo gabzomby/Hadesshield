@@ -7,8 +7,15 @@ function bouton_demande(string $type, string $libelle, string $classe, string $o
 {
     return '<form method="post" action="' . url('demande.php') . '">' . csrf_champ()
         . '<input type="hidden" name="type" value="' . $type . '">'
-        . ($offre ? '<input type="hidden" name="offre" value="' . $offre . '">' : '')
+        . ($offre ? '<input type="hidden" name="offre" value="' . $offre . '"><input type="hidden" name="periode" value="mensuel">' : '')
         . '<button type="submit" class="btn ' . $classe . '">' . $libelle . '</button></form>';
+}
+// Prix d'une offre dans les deux périodicités ; l'onglet choisi affiche l'une ou l'autre
+function bloc_prix(string $offre): string
+{
+    return '<div class="price p-mensuel">' . tarif(PRIX[$offre]) . ' <small>/ mois</small></div>'
+        . '<div class="price p-annuel">' . tarif(prix_mensuel_si_annuel($offre)) . ' <small>/ mois</small></div>'
+        . '<p class="p-annuel prix-annee">Soit ' . tarif(prix_annuel($offre)) . ' / an au lieu de <s>' . tarif(PRIX[$offre] * 12) . '</s></p>';
 }
 $flash = lire_flash();
 ?>
@@ -26,19 +33,19 @@ $flash = lire_flash();
     </div>
 </section>
 
-<section id="offres" style="padding-top: 20px;">
+<section id="offres" style="padding-top: 20px;" data-periode="mensuel">
     <div class="container">
-        <!-- Onglets (visuel uniquement pour l'instant) -->
-        <div class="tabs">
-            <button class="tab active">Mensuel</button>
-            <button class="tab">Annuel (−20 %)</button>
+        <!-- Onglets : affichent les prix mensuels ou annuels, et transmettent le choix avec la demande -->
+        <div class="tabs" role="group" aria-label="Périodicité">
+            <button type="button" class="tab active" data-periode="mensuel">Mensuel</button>
+            <button type="button" class="tab" data-periode="annuel">Annuel (−<?= REMISE_ANNUELLE * 100 ?> %)</button>
         </div>
 
         <div class="pricing">
             <div class="card price-card">
                 <h3>Starter</h3>
                 <p class="muted">Pour un site personnel</p>
-                <div class="price"><?= tarif(PRIX['starter']) ?> <small>/ mois</small></div>
+                <?= bloc_prix('starter') ?>
                 <p class="muted">1 domaine · 500 000 requêtes / mois</p>
                 <ul class="features">
                     <li>Blocage des crawlers IA connus</li>
@@ -55,7 +62,7 @@ $flash = lire_flash();
                 <span class="badge">⭐ Le plus populaire</span>
                 <h3>Pro</h3>
                 <p class="muted">Pour les entreprises en croissance</p>
-                <div class="price"><?= tarif(PRIX['pro']) ?> <small>/ mois</small></div>
+                <?= bloc_prix('pro') ?>
                 <p class="muted">5 domaines · 5 millions de requêtes / mois</p>
                 <ul class="features">
                     <li>Blocage des crawlers IA connus</li>
@@ -101,6 +108,17 @@ $flash = lire_flash();
         </div>
     </div>
 </section>
+<script>
+    // Bascule Mensuel / Annuel : change les prix affichés et la périodicité envoyée avec la demande
+    document.querySelectorAll('#offres .tab').forEach(function (onglet) {
+        onglet.addEventListener('click', function () {
+            var periode = onglet.dataset.periode;
+            document.getElementById('offres').dataset.periode = periode;
+            document.querySelectorAll('#offres .tab').forEach(function (t) { t.classList.toggle('active', t === onglet); });
+            document.querySelectorAll('#offres input[name="periode"]').forEach(function (champ) { champ.value = periode; });
+        });
+    });
+</script>
 
 <!-- Comparatif -->
 <section class="section-alt" id="comparatif">

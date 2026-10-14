@@ -66,6 +66,8 @@ $stmt->execute([utilisateur()['id']]);
 $moi = $stmt->fetch();
 
 $offre = null;
+// Périodicité d'une demande d'offre, rangée dans la colonne « sujet » : 'annuel' ou NULL (mensuel)
+$annuel = $type === 'offre' && ($_POST['periode'] ?? '') === 'annuel';
 if ($type === 'offre') {
     $offre = $_POST['offre'] ?? '';
     if (!isset(OFFRES[$offre])) {
@@ -83,18 +85,21 @@ if ($type === 'offre') {
 
 // Une seule demande en attente par type : la nouvelle remplace l'ancienne
 db()->prepare("DELETE FROM demandes WHERE utilisateur_id = ? AND type = ? AND statut = 'en_attente'")->execute([$moi['id'], $type]);
-db()->prepare('INSERT INTO demandes (utilisateur_id, type, offre, nom, email) VALUES (?, ?, ?, ?, ?)')
-    ->execute([$moi['id'], $type, $offre, $moi['nom'], $moi['email']]);
+db()->prepare('INSERT INTO demandes (utilisateur_id, type, offre, nom, email, sujet) VALUES (?, ?, ?, ?, ?, ?)')
+    ->execute([$moi['id'], $type, $offre, $moi['nom'], $moi['email'], $annuel ? 'annuel' : null]);
 
-$quoi = $type === 'offre' ? 'Offre ' . OFFRES[$offre] : 'Option maintenance';
+$quoi = $type === 'offre' ? 'Offre ' . OFFRES[$offre] . ($annuel ? ' (annuelle)' : ' (mensuelle)') : 'Option maintenance';
 notifier_demande("[HadesShield] Nouvelle demande : $quoi — {$moi['nom']}", [
     'Demande' => $quoi,
+    'Prix' => $type === 'offre'
+        ? ($annuel ? tarif(prix_annuel($offre)) . ' / an' : tarif(PRIX[$offre]) . ' / mois')
+        : tarif(prix_maintenance($moi['offre'], $moi['offre_depuis'])) . ' / mois',
     'Client' => $moi['nom'],
     'E-mail' => $moi['email'],
     'Offre actuelle' => $moi['offre'] ? OFFRES[$moi['offre']] : 'aucune',
 ], $moi['email']);
 
 flash($type === 'offre'
-    ? 'Demande d\'offre ' . OFFRES[$offre] . ' envoyée. Notre équipe vous contacte pour l\'installation.'
+    ? 'Demande d\'offre ' . OFFRES[$offre] . ($annuel ? ' (paiement annuel)' : '') . ' envoyée. Notre équipe vous contacte pour l\'installation.'
     : 'Demande d\'option maintenance envoyée. Notre équipe revient vers vous rapidement.');
 aller(url('compte/index.php'));

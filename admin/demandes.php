@@ -27,9 +27,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $etat_avant = json_encode($stmt->fetch());
     }
     if ($decision === 'acceptee' && $d['type'] === 'offre') {
-        // Le changement d'offre prend effet et le premier mois est encaissé
+        // Le changement d'offre prend effet et le premier mois (ou l'année, avec la remise) est encaissé
         db()->prepare("UPDATE utilisateurs SET offre = ?, offre_depuis = datetime('now') WHERE id = ?")->execute([$d['offre'], $d['utilisateur_id']]);
-        $paiement_id = enregistrer_paiement((int) $d['utilisateur_id'], $d['offre']);
+        $paiement_id = enregistrer_paiement((int) $d['utilisateur_id'], $d['offre'], $d['sujet'] === 'annuel' ? prix_annuel($d['offre']) : null);
         activer_maintenance_si_pro((int) $d['utilisateur_id'], $d['offre']);
     }
     if ($decision === 'acceptee' && $d['type'] === 'maintenance') {
@@ -134,7 +134,11 @@ include __DIR__ . '/../includes/header.php';
                             <strong>
                                 <?php if ($d['type'] === 'offre'): ?>
                                     Passage à l'offre <?= e(OFFRES[$d['offre']] ?? $d['offre']) ?>
-                                    <span class="muted">(<?= tarif(PRIX[$d['offre']] ?? 0) ?> / mois)</span>
+                                    <?php if ($d['sujet'] === 'annuel'): ?>
+                                        <span class="muted">(<?= tarif(prix_annuel($d['offre'])) ?> / an)</span> <span class="pill">Annuel</span>
+                                    <?php else: ?>
+                                        <span class="muted">(<?= tarif(PRIX[$d['offre']] ?? 0) ?> / mois)</span>
+                                    <?php endif; ?>
                                 <?php elseif ($d['type'] === 'maintenance'): ?>
                                     <?php $prix_m = prix_maintenance($d['offre_actuelle'], $d['offre_actuelle_depuis']); ?>
                                     Ajout de l'option maintenance <span class="muted">(<?= $prix_m > 0 ? tarif($prix_m) . ' / mois' : 'incluse avec Pro la 1re année' ?>)</span>

@@ -176,6 +176,10 @@ section { padding: 90px 0; }
 }
 .price { font-size: 2.8rem; font-weight: 800; margin: 14px 0 4px; }
 .price small { font-size: 1rem; color: var(--muted); font-weight: 500; }
+/* Mensuel / Annuel : seul le bloc de la périodicité choisie est visible */
+[data-periode="mensuel"] .p-annuel, [data-periode="annuel"] .p-mensuel { display: none; }
+.prix-annee { color: var(--success); font-size: .9rem; font-weight: 600; margin-bottom: 4px; }
+.prix-annee s { color: var(--muted); font-weight: 400; }
 .features { list-style: none; margin: 24px 0 30px; flex: 1; }
 .features li { padding: 8px 0 8px 28px; position: relative; color: #c8cfe0; }
 .features li::before { content: "✓"; position: absolute; left: 0; color: var(--success); font-weight: 700; }

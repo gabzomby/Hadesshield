@@ -275,6 +275,20 @@ const PRIX = ['starter' => 19.99, 'pro' => 99.99, 'entreprise' => 299, 'maintena
 // Offre Pro : maintenance incluse la 1re année, puis 10 €/mois au lieu de 15 €.
 const PRIX_MAINTENANCE_PRO = 10;
 
+// Paiement à l'année : 20 % de remise sur les offres (pas sur la maintenance).
+const REMISE_ANNUELLE = 0.20;
+
+// Prix d'une offre payée à l'année : total sur 12 mois, et équivalent par mois.
+function prix_annuel(string $offre): float
+{
+    return round(PRIX[$offre] * 12 * (1 - REMISE_ANNUELLE), 2);
+}
+
+function prix_mensuel_si_annuel(string $offre): float
+{
+    return floor(PRIX[$offre] * (1 - REMISE_ANNUELLE) * 100) / 100;
+}
+
 // Prix mensuel de la maintenance pour un client, à une date donnée (maintenant par défaut).
 // $offre_depuis est la date de début de l'offre, en UTC comme en base.
 function prix_maintenance(?string $offre, ?string $offre_depuis, ?int $quand = null): float
