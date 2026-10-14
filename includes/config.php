@@ -388,6 +388,14 @@ const CATEGORIES = [
     'autre'            => 'Autre',
 ];
 
+// Durée de conservation du journal du proxy (contient des adresses IP : données personnelles).
+const DUREE_EVENEMENTS_JOURS = 90;
+
+function purger_evenements(): void
+{
+    db()->prepare('DELETE FROM evenements WHERE date < ?')->execute([time() - DUREE_EVENEMENTS_JOURS * 86400]);
+}
+
 function hacher_cle_api(string $cle): string
 {
     return hash('sha256', $cle);

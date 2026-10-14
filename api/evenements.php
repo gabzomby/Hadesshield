@@ -85,4 +85,9 @@ foreach ($lignes as $ligne) {
 }
 db()->commit();
 
+// Le proxy envoie toutes les quelques secondes : une purge de temps en temps suffit
+if (random_int(1, 100) === 1) {
+    purger_evenements();
+}
+
 repondre(201, ['ok' => true, 'enregistres' => count($lignes)]);

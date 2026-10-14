@@ -57,7 +57,7 @@ include __DIR__ . '/../includes/legal.php';
 
             <h2>3. Données des visiteurs des sites protégés</h2>
             <p>Lorsque notre proxy protège le site d'un client, il analyse les requêtes des visiteurs de ce site pour distinguer les humains des robots d'IA : adresse IP, pays, navigateur (user-agent), page demandée, date et décision prise (autorisé, bloqué, en analyse).</p>
-            <p>Pour ces données, <strong>notre client est responsable du traitement</strong> et HadesShield agit en tant que <strong>sous-traitant</strong> au sens de l'article 28 du RGPD : nous les traitons uniquement pour fournir le service et selon les instructions du client, dans le cadre d'un accord de sous-traitance. Elles sont conservées <?= a_completer('durée, par exemple 90 jours') ?>, puis supprimées.</p>
+            <p>Pour ces données, <strong>notre client est responsable du traitement</strong> et HadesShield agit en tant que <strong>sous-traitant</strong> au sens de l'article 28 du RGPD : nous les traitons uniquement pour fournir le service et selon les instructions du client, dans le cadre d'un accord de sous-traitance. Elles sont conservées <?= DUREE_EVENEMENTS_JOURS ?> jours, puis supprimées automatiquement.</p>
             <p>Si vous êtes visiteur d'un site protégé par HadesShield, adressez vos demandes d'exercice de droits en priorité à l'éditeur de ce site.</p>
 
             <h2>4. Destinataires</h2>
