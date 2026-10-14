@@ -1,0 +1,4 @@
+# Données sensibles : base SQLite (comptes, paiements) et clé secrète des mots de passe.
+# À copier à la main sur le serveur (FTP), jamais sur GitHub.
+data/*
+!data/.htaccess

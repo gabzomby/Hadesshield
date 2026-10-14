@@ -1,0 +1,3 @@
+# Page d'erreur personnalisée sous Apache.
+# Si le site est installé dans un sous-dossier, adapter le chemin (ex. /monsite/404.php).
+ErrorDocument 404 /404.php
