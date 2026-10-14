@@ -199,9 +199,7 @@ td.no { color: #ff6b81; }
     margin-bottom: 16px;
 }
 
-/* ========== Avis ========== */
-.stars { color: #feca57; margin-bottom: 12px; letter-spacing: 2px; }
-.author { display: flex; align-items: center; gap: 12px; margin-top: 20px; }
+/* ========== Avatar (fiche client admin) ========== */
 .avatar {
     width: 42px; height: 42px; border-radius: 50%;
     display: grid; place-items: center; font-weight: 700;

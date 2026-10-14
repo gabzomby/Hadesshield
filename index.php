@@ -133,28 +133,28 @@
     </div>
 </section>
 
-<!-- Avis -->
+<!-- Nos engagements -->
 <section>
     <div class="container">
         <div class="section-title">
-            <span class="tag">Avis clients</span>
-            <h2>Ils ont repris le contrôle</h2>
+            <span class="tag">Nos engagements</span>
+            <h2>Ce que nous vous promettons</h2>
         </div>
         <div class="grid-3">
             <div class="card">
-                <div class="stars">★★★★★</div>
-                <p>« 40 % de notre trafic venait de robots d'IA. Depuis HadesShield, notre facture serveur a fondu. »</p>
-                <div class="author"><div class="avatar">TL</div><div><strong>Thomas L.</strong><div class="muted">CTO, média en ligne</div></div></div>
+                <div class="icon">🤝</div>
+                <h3>Zéro effort de votre côté</h3>
+                <p class="muted">Notre équipe installe et configure le proxy devant votre site. Vous nous dites ce que vous voulez bloquer, on s'occupe du reste.</p>
             </div>
             <div class="card">
-                <div class="stars">★★★★★</div>
-                <p>« Nos fiches produits ne sont plus aspirées, et nos clients n'ont rien remarqué. Exactement ce qu'on voulait. »</p>
-                <div class="author"><div class="avatar">SM</div><div><strong>Sarah M.</strong><div class="muted">E-commerce</div></div></div>
+                <div class="icon">🧑‍💻</div>
+                <h3>Vos visiteurs ne voient rien</h3>
+                <p class="muted">Pas de captcha, pas de page d'attente : les humains naviguent comme avant, seules les IA sont arrêtées.</p>
             </div>
             <div class="card">
-                <div class="stars">★★★★☆</div>
-                <p>« Leur équipe a tout installé devant notre API, on n'a rien eu à toucher. Les logs détaillés sont vraiment pratiques. »</p>
-                <div class="author"><div class="avatar">KD</div><div><strong>Karim D.</strong><div class="muted">Développeur backend</div></div></div>
+                <div class="icon">🔓</div>
+                <h3>Libre à tout moment</h3>
+                <p class="muted">Sans engagement : vous restez parce que ça marche, pas parce qu'un contrat vous retient. Résiliable quand vous voulez.</p>
             </div>
         </div>
     </div>
