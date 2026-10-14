@@ -467,6 +467,13 @@ td.no { color: #ff6b81; }
 .info-grid strong { font-size: 1.05rem; }
 .admin-form { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
 .panel-head .admin-form { margin-top: 0; }
+
+/* Collaborateurs d'un site (tableau de bord client) */
+.collab-site { padding: 16px 0; border-top: 1px solid var(--border); }
+.collab-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.collab-head .admin-form { margin-top: 0; flex: 1; max-width: 420px; }
+.collab-liste { list-style: none; }
+.collab-liste li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 6px 0; }
 .admin-form select, .admin-form input, .admin-filters input[type="search"], .admin-filters select {
     width: auto; flex: 1; min-width: 160px; padding: 9px 12px; border-radius: 10px;
     border: 1px solid var(--border); background: var(--bg); color: var(--text); font: inherit; font-size: .9rem;

@@ -6,9 +6,21 @@ $stmt = db()->prepare('SELECT * FROM utilisateurs WHERE id = ?');
 $stmt->execute([utilisateur()['id']]);
 $moi = $stmt->fetch();
 
-$stmt = db()->prepare('SELECT id, domaine FROM sites WHERE utilisateur_id = ? ORDER BY domaine');
-$stmt->execute([$moi['id']]);
-$sites = $stmt->fetchAll(PDO::FETCH_KEY_PAIR);
+// Ses propres sites et ceux qu'on a partagés avec lui
+$sites = sites_visibles($moi);
+
+// Collaborateurs de ses propres sites, pour le bloc de gestion
+$mes_sites = array_filter($sites, fn($s) => $s['partage_par'] === null);
+$collaborateurs = [];
+if ($mes_sites) {
+    $in = implode(',', array_fill(0, count($mes_sites), '?'));
+    $stmt = db()->prepare("SELECT site_id, email FROM site_collaborateurs WHERE site_id IN ($in) ORDER BY ajoute_le");
+    $stmt->execute(array_keys($mes_sites));
+    foreach ($stmt as $l) {
+        $collaborateurs[(int) $l['site_id']][] = $l['email'];
+    }
+}
+$flash = lire_flash();
 
 // ---------- Filtres ----------
 const PERIODES = [
@@ -45,7 +57,7 @@ $top_chemins = [];
 $journal = [];
 $total_journal = 0;
 
-if ($moi['offre'] && $sites_ids) {
+if ($sites_ids) {
     $in = implode(',', array_fill(0, count($sites_ids), '?'));
     $base = "FROM evenements WHERE site_id IN ($in) AND date >= ?";
     $params = [...$sites_ids, $depuis];
@@ -145,7 +157,11 @@ include __DIR__ . '/../includes/header.php';
             <?php endif; ?>
         </div>
 
-        <?php if (!$moi['offre']): ?>
+        <?php if ($flash): ?>
+            <div class="alert <?= $flash['type'] === 'erreur' ? 'alert-error' : 'alert-ok' ?>"><?= e($flash['message']) ?></div>
+        <?php endif; ?>
+
+        <?php if (!$moi['offre'] && !$sites): ?>
             <div class="card empty-state">
                 <div class="icon">📦</div>
                 <h3>Aucune offre active</h3>
@@ -170,8 +186,8 @@ include __DIR__ . '/../includes/header.php';
                 <input type="hidden" name="periode" value="<?= e($periode) ?>">
                 <select name="site" onchange="this.form.submit()" aria-label="Site">
                     <option value="">Tous les sites</option>
-                    <?php foreach ($sites as $id => $domaine): ?>
-                        <option value="<?= $id ?>" <?= $id === $site ? 'selected' : '' ?>><?= e($domaine) ?></option>
+                    <?php foreach ($sites as $id => $s): ?>
+                        <option value="<?= $id ?>" <?= $id === $site ? 'selected' : '' ?>><?= e($s['domaine']) ?><?= $s['partage_par'] !== null ? ' · partagé par ' . e($s['partage_par']) : '' ?></option>
                     <?php endforeach; ?>
                 </select>
                 <label class="auto-refresh"><input type="checkbox" id="auto-refresh"> Actualisation auto (15 s)</label>
@@ -317,6 +333,46 @@ include __DIR__ . '/../includes/header.php';
                     </div>
                 <?php endif; ?>
             </div>
+
+            <?php if ($mes_sites): ?>
+                <!-- Collaborateurs -->
+                <div class="card panel" id="collaborateurs">
+                    <h2>Collaborateurs</h2>
+                    <p class="muted" style="margin-bottom: 16px;">Donnez accès au tableau de bord d'un de vos sites à une autre personne (collègue, prestataire…). Elle le consulte en lecture seule, avec son propre compte HadesShield créé avec cette adresse e-mail.</p>
+                    <?php foreach ($mes_sites as $id => $s): ?>
+                        <div class="collab-site">
+                            <div class="collab-head">
+                                <strong class="mono"><?= e($s['domaine']) ?></strong>
+                                <form method="post" action="<?= url('compte/collaborateurs.php') ?>" class="admin-form">
+                                    <?= csrf_champ() ?>
+                                    <input type="hidden" name="action" value="ajouter">
+                                    <input type="hidden" name="site_id" value="<?= $id ?>">
+                                    <input type="email" name="email" placeholder="collegue@exemple.com" aria-label="E-mail du collaborateur" required>
+                                    <button type="submit" class="btn btn-primary btn-sm">Ajouter</button>
+                                </form>
+                            </div>
+                            <?php if (empty($collaborateurs[$id])): ?>
+                                <p class="muted">Aucun collaborateur.</p>
+                            <?php else: ?>
+                                <ul class="collab-liste">
+                                    <?php foreach ($collaborateurs[$id] as $email): ?>
+                                        <li>
+                                            <span><?= e($email) ?></span>
+                                            <form method="post" action="<?= url('compte/collaborateurs.php') ?>" onsubmit="return confirm('Retirer l\'accès de ce collaborateur ?');">
+                                                <?= csrf_champ() ?>
+                                                <input type="hidden" name="action" value="retirer">
+                                                <input type="hidden" name="site_id" value="<?= $id ?>">
+                                                <input type="hidden" name="email" value="<?= e($email) ?>">
+                                                <button type="submit" class="btn btn-danger btn-sm">Retirer</button>
+                                            </form>
+                                        </li>
+                                    <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
 
             <script>
                 (function () {

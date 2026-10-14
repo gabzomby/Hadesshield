@@ -98,6 +98,16 @@ function db(): PDO
             cree_le         TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
         )');
 
+        // Collaborateurs : accès en lecture au tableau de bord d'un site, par adresse e-mail
+        // (l'invité n'a pas besoin d'avoir déjà un compte)
+        $pdo->exec('CREATE TABLE IF NOT EXISTS site_collaborateurs (
+            site_id   INTEGER NOT NULL REFERENCES sites(id) ON DELETE CASCADE,
+            email     TEXT NOT NULL,
+            ajoute_le TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (site_id, email)
+        )');
+        $pdo->exec('CREATE INDEX IF NOT EXISTS idx_collaborateurs_email ON site_collaborateurs (email)');
+
         // Journal des requêtes vues par le proxy
         $pdo->exec("CREATE TABLE IF NOT EXISTS evenements (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -328,27 +338,42 @@ const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'cont
 // ---------- Notification par e-mail des nouvelles demandes ----------
 const EMAIL_CONTACT = 'contact@hadesshield.com';
 
-// Prévient l'équipe par e-mail. Un échec d'envoi (ex. en local, sans serveur mail) ne bloque pas la demande.
-function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = null): void
+function sans_retour_ligne(string $s): string
 {
-    $sans_retour = fn(string $s) => str_replace(["\r", "\n"], ' ', $s);
-    $corps = '';
-    foreach ($lignes as $libelle => $valeur) {
-        if ($valeur !== null && $valeur !== '') {
-            $corps .= $libelle === 'Message' ? "\n$valeur\n" : "$libelle : $valeur\n";
-        }
-    }
-    $corps .= "\nÀ traiter dans l'admin : https://" . $sans_retour($_SERVER['HTTP_HOST'] ?? 'www.hadesshield.com') . url('admin/demandes.php') . "\n";
+    return str_replace(["\r", "\n"], ' ', $s);
+}
 
+// Adresse absolue d'une page du site, pour les liens dans les e-mails
+function url_absolue(string $chemin): string
+{
+    return 'https://' . sans_retour_ligne($_SERVER['HTTP_HOST'] ?? 'www.hadesshield.com') . url($chemin);
+}
+
+// Envoi d'un e-mail texte. Un échec (ex. en local, sans serveur mail) ne bloque jamais l'action en cours.
+function envoyer_mail(string $a, string $sujet, string $corps, ?string $repondre_a = null): void
+{
     $entetes = [
         'From: HadesShield <' . EMAIL_CONTACT . '>',
         'Content-Type: text/plain; charset=UTF-8',
         'Content-Transfer-Encoding: 8bit',
     ];
     if ($repondre_a && filter_var($repondre_a, FILTER_VALIDATE_EMAIL)) {
-        $entetes[] = 'Reply-To: ' . $repondre_a;   // « Répondre » écrit directement au client
+        $entetes[] = 'Reply-To: ' . $repondre_a;   // « Répondre » écrit directement à cette personne
     }
-    @mail(EMAIL_CONTACT, '=?UTF-8?B?' . base64_encode($sans_retour($sujet)) . '?=', $corps, implode("\r\n", $entetes));
+    @mail($a, '=?UTF-8?B?' . base64_encode(sans_retour_ligne($sujet)) . '?=', $corps, implode("\r\n", $entetes));
+}
+
+// Prévient l'équipe d'une nouvelle demande.
+function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = null): void
+{
+    $corps = '';
+    foreach ($lignes as $libelle => $valeur) {
+        if ($valeur !== null && $valeur !== '') {
+            $corps .= $libelle === 'Message' ? "\n$valeur\n" : "$libelle : $valeur\n";
+        }
+    }
+    $corps .= "\nÀ traiter dans l'admin : " . url_absolue('admin/demandes.php') . "\n";
+    envoyer_mail(EMAIL_CONTACT, $sujet, $corps, $repondre_a);
 }
 
 function enregistrer_paiement(int $utilisateur_id, string $produit, ?float $montant = null, ?string $date = null): int
@@ -422,4 +447,24 @@ function creer_site(int $utilisateur_id, string $domaine): string
     db()->prepare('INSERT INTO sites (utilisateur_id, domaine, cle_api_hash) VALUES (?, ?, ?)')
         ->execute([$utilisateur_id, $domaine, hacher_cle_api($cle)]);
     return $cle;
+}
+
+// ---------- Collaborateurs ----------
+const MAX_COLLABORATEURS = 10; // par site
+
+// Sites dont l'utilisateur voit le tableau de bord : les siens et ceux partagés avec son e-mail,
+// tant que le propriétaire a une offre active. [id => ['domaine' => …, 'partage_par' => nom ou null]]
+function sites_visibles(array $moi): array
+{
+    $stmt = db()->prepare('SELECT s.id, s.domaine, CASE WHEN s.utilisateur_id = ? THEN NULL ELSE u.nom END AS partage_par
+        FROM sites s JOIN utilisateurs u ON u.id = s.utilisateur_id
+        WHERE u.offre IS NOT NULL
+          AND (s.utilisateur_id = ? OR s.id IN (SELECT site_id FROM site_collaborateurs WHERE email = ?))
+        ORDER BY partage_par IS NOT NULL, s.domaine');
+    $stmt->execute([$moi['id'], $moi['id'], strtolower($moi['email'])]);
+    $sites = [];
+    foreach ($stmt as $l) {
+        $sites[(int) $l['id']] = ['domaine' => $l['domaine'], 'partage_par' => $l['partage_par']];
+    }
+    return $sites;
 }
