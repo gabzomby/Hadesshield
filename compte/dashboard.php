@@ -49,6 +49,32 @@ function nombre(int|float $n): string
     return number_format($n, 0, ',', ' ');
 }
 
+// Format court à partir de 1 000 : 1k, 1,2k, 125k, 1M, 1,5M, 2Md (une décimale sous 100)
+function nombre_court(int|float $n): string
+{
+    if (abs($n) < 1000) {
+        return nombre($n);
+    }
+    $unites = ['k' => 1e3, 'M' => 1e6, 'Md' => 1e9];
+    $noms = array_keys($unites);
+    foreach ($noms as $i => $u) {
+        $v = $n / $unites[$u];
+        $arrondi = round($v, abs($v) < 100 ? 1 : 0);
+        // 999 950 donnerait « 1000k » : on passe à l'unité suivante
+        if (abs($arrondi) >= 1000 && isset($noms[$i + 1])) {
+            continue;
+        }
+        return str_replace('.', ',', (string) $arrondi) . $u;
+    }
+    return nombre($n);
+}
+
+// Nombre court, avec la valeur exacte au survol
+function nombre_survol(int|float $n): string
+{
+    return '<span title="' . nombre($n) . '">' . nombre_court($n) . '</span>';
+}
+
 // ---------- Données ----------
 $stats = ['autorise' => 0, 'bloque' => 0, 'analyse' => 0];
 $colonnes = [];
@@ -197,20 +223,20 @@ include __DIR__ . '/../includes/header.php';
             <div class="stats">
                 <div class="stat">
                     <span class="stat-label">Requêtes analysées</span>
-                    <strong><?= nombre($total) ?></strong>
+                    <strong><?= nombre_survol($total) ?></strong>
                 </div>
                 <div class="stat">
                     <span class="stat-label"><i class="dot dot-bloque"></i>IA bloquées</span>
-                    <strong><?= nombre($stats['bloque']) ?></strong>
+                    <strong><?= nombre_survol($stats['bloque']) ?></strong>
                     <span class="muted"><?= str_replace('.', ',', $part_ia) ?> % du trafic</span>
                 </div>
                 <div class="stat">
                     <span class="stat-label"><i class="dot dot-autorise"></i>Humains autorisés</span>
-                    <strong><?= nombre($stats['autorise']) ?></strong>
+                    <strong><?= nombre_survol($stats['autorise']) ?></strong>
                 </div>
                 <div class="stat">
                     <span class="stat-label"><i class="dot dot-analyse"></i>En analyse</span>
-                    <strong><?= nombre($stats['analyse']) ?></strong>
+                    <strong><?= nombre_survol($stats['analyse']) ?></strong>
                     <span class="muted">Comportement suspect</span>
                 </div>
             </div>
@@ -228,7 +254,7 @@ include __DIR__ . '/../includes/header.php';
                 <div class="chart" style="--cols: <?= count($colonnes) ?>">
                     <div class="chart-grid">
                         <?php foreach ([1, .5, 0] as $f): ?>
-                            <div class="grid-line"><span><?= nombre($echelle * $f) ?></span></div>
+                            <div class="grid-line"><span><?= nombre_court($echelle * $f) ?></span></div>
                         <?php endforeach; ?>
                     </div>
                     <div class="chart-bars">
@@ -241,9 +267,9 @@ include __DIR__ . '/../includes/header.php';
                                 </div>
                                 <div class="tip">
                                     <strong><?= e($c['complet']) ?></strong>
-                                    <div><i class="dot dot-autorise"></i>Humains <b><?= nombre($c['autorise']) ?></b></div>
-                                    <div><i class="dot dot-bloque"></i>IA bloquées <b><?= nombre($c['bloque']) ?></b></div>
-                                    <div><i class="dot dot-analyse"></i>En analyse <b><?= nombre($c['analyse']) ?></b></div>
+                                    <div><i class="dot dot-autorise"></i>Humains <b><?= nombre_court($c['autorise']) ?></b></div>
+                                    <div><i class="dot dot-bloque"></i>IA bloquées <b><?= nombre_court($c['bloque']) ?></b></div>
+                                    <div><i class="dot dot-analyse"></i>En analyse <b><?= nombre_court($c['analyse']) ?></b></div>
                                 </div>
                                 <span class="bar-label"><?= $i % $etiquette_tous === 0 ? e($c['libelle']) : '' ?></span>
                             </div>
@@ -275,7 +301,7 @@ include __DIR__ . '/../includes/header.php';
                         <?php endif; ?>
                         <?php $plus_grand = $lignes[0]['n'] ?? 1; foreach ($lignes as $l): ?>
                             <div class="rank">
-                                <div class="rank-text"><span><?= e(CATEGORIES[$l['nom']] ?? $l['nom']) ?></span><b><?= nombre($l['n']) ?></b></div>
+                                <div class="rank-text"><span><?= e(CATEGORIES[$l['nom']] ?? $l['nom']) ?></span><b><?= nombre_survol($l['n']) ?></b></div>
                                 <div class="rank-track"><div class="rank-bar" style="width: <?= round($l['n'] / $plus_grand * 100, 1) ?>%"></div></div>
                             </div>
                         <?php endforeach; ?>
@@ -325,7 +351,7 @@ include __DIR__ . '/../includes/header.php';
 
                 <?php $pages = max(1, (int) ceil($total_journal / PAR_PAGE)); if ($pages > 1): ?>
                     <div class="pagination">
-                        <span class="muted"><?= nombre($total_journal) ?> requêtes · page <?= $num_page ?> / <?= $pages ?></span>
+                        <span class="muted"><?= nombre_survol($total_journal) ?> requêtes · page <?= $num_page ?> / <?= $pages ?></span>
                         <div>
                             <?php if ($num_page > 1): ?><a class="btn btn-ghost btn-sm" href="<?= e(url_filtres(['page' => $num_page - 1])) ?>#journal">← Précédent</a><?php endif; ?>
                             <?php if ($num_page < $pages): ?><a class="btn btn-ghost btn-sm" href="<?= e(url_filtres(['page' => $num_page + 1])) ?>#journal">Suivant →</a><?php endif; ?>
