@@ -271,7 +271,8 @@ function longueur(string $texte): int
 const OFFRES = ['starter' => 'Starter', 'pro' => 'Pro', 'entreprise' => 'Entreprise'];
 
 // Prix mensuels en euros. L'offre Entreprise est « sur devis » : 299 € est un montant moyen à ajuster.
-const PRIX = ['starter' => 19, 'pro' => 79, 'entreprise' => 299, 'maintenance' => 9];
+// Offre Pro : maintenance incluse la 1re année, puis 10 €/mois au lieu de 15 €.
+const PRIX = ['starter' => 19, 'pro' => 100, 'entreprise' => 299, 'maintenance' => 15];
 
 const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'contact' => 'Contact'];
 

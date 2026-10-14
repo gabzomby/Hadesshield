@@ -58,6 +58,8 @@ section { padding: 90px 0; }
     cursor: pointer;
     transition: transform .15s, box-shadow .2s, background .2s;
     font-size: 1rem;
+    font-family: inherit;
+    color: inherit; /* les <button> n'héritent pas de la couleur du texte */
 }
 .btn:hover { transform: translateY(-2px); }
 .btn-primary {

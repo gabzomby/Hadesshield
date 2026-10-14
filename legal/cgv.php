@@ -41,9 +41,9 @@ include __DIR__ . '/../includes/legal.php';
             <h2 id="prix">3. Prix</h2>
             <ul>
                 <li>Starter : 19 € par mois</li>
-                <li>Pro : 79 € par mois</li>
+                <li>Pro : 100 € par mois, option maintenance incluse pendant les 12 premiers mois, puis facturée 10 € par mois</li>
                 <li>Entreprise : sur devis</li>
-                <li>Option maintenance : 9 € par mois</li>
+                <li>Option maintenance : 15 € par mois</li>
             </ul>
             <p>Les prix sont indiqués en euros <?= a_completer('hors taxes / toutes taxes comprises') ?>. Le deuxième mois d'abonnement à une offre bénéficie d'une remise de 50 % ; cette remise ne s'applique pas à l'option maintenance. HadesShield peut modifier ses prix ; les nouveaux prix s'appliquent aux abonnements en cours après information du Client au moins 30 jours à l'avance, le Client restant libre de résilier.</p>
 

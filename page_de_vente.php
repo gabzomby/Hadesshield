@@ -55,11 +55,12 @@ $flash = lire_flash();
                 <span class="badge">⭐ Le plus populaire</span>
                 <h3>Pro</h3>
                 <p class="muted">Pour les entreprises en croissance</p>
-                <div class="price">79 € <small>/ mois</small></div>
+                <div class="price">100 € <small>/ mois</small></div>
                 <p class="muted">5 domaines · 5 millions de requêtes / mois</p>
                 <ul class="features">
                     <li>Blocage des crawlers IA connus</li>
                     <li>Installation par nos équipes</li>
+                    <li>Maintenance incluse la 1<sup>re</sup> année, puis 10 € / mois</li>
                     <li>Tableau de bord complet + logs</li>
                     <li>Détection des agents IA déguisés</li>
                     <li>Règles sur mesure selon vos besoins</li>
@@ -91,9 +92,10 @@ $flash = lire_flash();
             <div class="maintenance-text">
                 <h3>Option maintenance</h3>
                 <p class="muted">Mises à jour de la détection, surveillance du proxy, ajustement de vos règles et intervention en cas de problème : on s'occupe de tout.</p>
+                <p class="muted"><strong>Offre Pro :</strong> maintenance incluse la première année, puis 10 € / mois.</p>
             </div>
             <div class="maintenance-price">
-                <div class="price">+ 9 € <small>/ mois</small></div>
+                <div class="price">+ 15 € <small>/ mois</small></div>
                 <?= bouton_demande('maintenance', 'Ajouter à mon offre', 'btn-ghost btn-sm') ?>
             </div>
         </div>
