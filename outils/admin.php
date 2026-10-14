@@ -48,7 +48,8 @@ switch ($commande) {
             stop('Offre inconnue. Choix : ' . implode(', ', array_keys(OFFRES)) . ', aucune');
         }
         db()->prepare("UPDATE utilisateurs SET offre = ?, offre_depuis = datetime('now') WHERE id = ?")->execute([$offre, $u['id']]);
-        echo 'Offre ' . OFFRES[$offre] . " attribuée à {$u['email']}" . PHP_EOL;
+        activer_maintenance_si_pro((int) $u['id'], $offre);
+        echo 'Offre ' . OFFRES[$offre] . " attribuée à {$u['email']}" . ($offre === 'pro' ? ' (maintenance incluse activée)' : '') . PHP_EOL;
         break;
 
     case 'admin':
@@ -105,7 +106,8 @@ switch ($commande) {
                 $r = $alea();
                 $offre = $r < 0.45 ? 'starter' : ($r < 0.85 ? 'pro' : 'entreprise');
                 $debut = min(time(), $inscription + random_int(0, 5) * 86400);
-                $maintenance = (int) ($alea() < ($offre === 'starter' ? 0.15 : 0.4));
+                // Maintenance toujours active en Pro (incluse la 1re année)
+                $maintenance = (int) ($offre === 'pro' || $alea() < ($offre === 'starter' ? 0.15 : 0.4));
                 // 15 % des clients résilient après quelques mois
                 if ($alea() < 0.15) {
                     $fin = strtotime('+' . random_int(1, 8) . ' months', $debut);
@@ -125,8 +127,9 @@ switch ($commande) {
                 for ($k = 0; ($t = strtotime("+$k months", $debut)) <= ($fin ?? time()); $k++) {
                     enregistrer_paiement($id, $offre, $k === 1 ? PRIX[$offre] / 2 : PRIX[$offre], date('Y-m-d', $t));
                     $nb_paiements++;
-                    if ($maintenance) {
-                        enregistrer_paiement($id, 'maintenance', null, date('Y-m-d', $t));
+                    $prix_m = prix_maintenance($offre, $utc($debut), $t);
+                    if ($maintenance && $prix_m > 0) {
+                        enregistrer_paiement($id, 'maintenance', $prix_m, date('Y-m-d', $t));
                         $nb_paiements++;
                     }
                 }

@@ -29,9 +29,11 @@ foreach (db()->query('SELECT offre, COUNT(*) AS n FROM utilisateurs WHERE offre 
     $repartition[$l['offre']]['clients'] = (int) $l['n'];
     $repartition[$l['offre']]['mrr'] = $l['n'] * PRIX[$l['offre']];
 }
-$nb_maintenance = (int) db()->query('SELECT COUNT(*) FROM utilisateurs WHERE offre IS NOT NULL AND maintenance = 1')->fetchColumn();
-$repartition['maintenance']['clients'] = $nb_maintenance;
-$repartition['maintenance']['mrr'] = $nb_maintenance * PRIX['maintenance'];
+// Maintenance : prix propre à chaque client (incluse la 1re année de l'offre Pro, puis tarif réduit)
+foreach (db()->query('SELECT offre, offre_depuis FROM utilisateurs WHERE offre IS NOT NULL AND maintenance = 1') as $l) {
+    $repartition['maintenance']['clients']++;
+    $repartition['maintenance']['mrr'] += prix_maintenance($l['offre'], $l['offre_depuis']);
+}
 
 $mrr = array_sum(array_column($repartition, 'mrr'));
 $clients = (int) db()->query('SELECT COUNT(*) FROM utilisateurs WHERE offre IS NOT NULL')->fetchColumn();
@@ -201,7 +203,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="rank-track"><div class="rank-bar bar-<?= $cle ?>" style="width: <?= round($r['mrr'] / $plus_grand * 100, 1) ?>%"></div></div>
                     </div>
                 <?php endforeach; ?>
-                <p class="muted" style="font-size: .82rem; margin-top: 6px;">Prix utilisés : Starter <?= PRIX['starter'] ?> €, Pro <?= PRIX['pro'] ?> €, Entreprise <?= PRIX['entreprise'] ?> € (moyenne sur devis), maintenance <?= PRIX['maintenance'] ?> €.</p>
+                <p class="muted" style="font-size: .82rem; margin-top: 6px;">Prix utilisés : Starter <?= PRIX['starter'] ?> €, Pro <?= PRIX['pro'] ?> €, Entreprise <?= PRIX['entreprise'] ?> € (moyenne sur devis), maintenance <?= PRIX['maintenance'] ?> € (Pro : incluse la 1re année, puis <?= PRIX_MAINTENANCE_PRO ?> €).</p>
             </div>
 
             <!-- Demandes en attente -->

@@ -30,18 +30,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         // Le changement d'offre prend effet et le premier mois est encaissé
         db()->prepare("UPDATE utilisateurs SET offre = ?, offre_depuis = datetime('now') WHERE id = ?")->execute([$d['offre'], $d['utilisateur_id']]);
         $paiement_id = enregistrer_paiement((int) $d['utilisateur_id'], $d['offre']);
+        activer_maintenance_si_pro((int) $d['utilisateur_id'], $d['offre']);
     }
     if ($decision === 'acceptee' && $d['type'] === 'maintenance') {
-        $stmt = db()->prepare('SELECT offre FROM utilisateurs WHERE id = ?');
+        $stmt = db()->prepare('SELECT offre, offre_depuis FROM utilisateurs WHERE id = ?');
         $stmt->execute([$d['utilisateur_id']]);
-        if (!$stmt->fetchColumn()) {
+        $client = $stmt->fetch();
+        if (!$client || !$client['offre']) {
             db()->rollBack();
             flash('Ce client n\'a pas d\'offre : acceptez d\'abord une demande d\'offre.', 'erreur');
             header('Location: ' . url('admin/demandes.php'));
             exit;
         }
         db()->prepare("UPDATE utilisateurs SET maintenance = 1, maintenance_depuis = datetime('now') WHERE id = ?")->execute([$d['utilisateur_id']]);
-        $paiement_id = enregistrer_paiement((int) $d['utilisateur_id'], 'maintenance');
+        // Rien à encaisser pendant la 1re année de l'offre Pro
+        $montant = prix_maintenance($client['offre'], $client['offre_depuis']);
+        if ($montant > 0) {
+            $paiement_id = enregistrer_paiement((int) $d['utilisateur_id'], 'maintenance', $montant);
+        }
     }
     db()->prepare("UPDATE demandes SET statut = ?, traite_le = datetime('now'), traite_par = ?, etat_avant = ?, paiement_id = ? WHERE id = ?")
         ->execute([$decision, utilisateur()['id'], $etat_avant, $paiement_id, $d['id']]);
@@ -56,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $statut = isset(STATUTS[$_GET['statut'] ?? '']) ? $_GET['statut'] : 'en_attente';
 $type = isset(TYPES_DEMANDE[$_GET['type'] ?? '']) ? $_GET['type'] : '';
 
-$sql = 'SELECT d.*, u.offre AS offre_actuelle, u.maintenance AS maintenance_actuelle
+$sql = 'SELECT d.*, u.offre AS offre_actuelle, u.offre_depuis AS offre_actuelle_depuis, u.maintenance AS maintenance_actuelle
     FROM demandes d LEFT JOIN utilisateurs u ON u.id = d.utilisateur_id WHERE d.statut = ?';
 $params = [$statut];
 if ($type) {
@@ -130,7 +136,8 @@ include __DIR__ . '/../includes/header.php';
                                     Passage à l'offre <?= e(OFFRES[$d['offre']] ?? $d['offre']) ?>
                                     <span class="muted">(<?= euros(PRIX[$d['offre']] ?? 0) ?> / mois)</span>
                                 <?php elseif ($d['type'] === 'maintenance'): ?>
-                                    Ajout de l'option maintenance <span class="muted">(<?= euros(PRIX['maintenance']) ?> / mois)</span>
+                                    <?php $prix_m = prix_maintenance($d['offre_actuelle'], $d['offre_actuelle_depuis']); ?>
+                                    Ajout de l'option maintenance <span class="muted">(<?= $prix_m > 0 ? euros($prix_m) . ' / mois' : 'incluse avec Pro la 1re année' ?>)</span>
                                 <?php else: ?>
                                     <?= e($d['sujet'] ?? 'Message') ?>
                                 <?php endif; ?>

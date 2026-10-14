@@ -42,6 +42,14 @@ include __DIR__ . '/../includes/header.php';
                     <p style="margin-top: 12px;">
                         <?php if ($moi['maintenance']): ?>
                             <span class="tag tag-ok" style="margin: 0;">🔧 Maintenance incluse</span>
+                            <?php if ($moi['offre'] === 'pro'): ?>
+                                <?php $fin_gratuite = strtotime($moi['offre_depuis'] . ' UTC +1 year'); ?>
+                                <span class="muted" style="display: block; margin-top: 8px; font-size: .9rem;">
+                                    <?= time() < $fin_gratuite
+                                        ? 'Offerte jusqu\'au ' . date('d/m/Y', $fin_gratuite) . ', puis ' . PRIX_MAINTENANCE_PRO . ' € / mois'
+                                        : PRIX_MAINTENANCE_PRO . ' € / mois (tarif Pro)' ?>
+                                </span>
+                            <?php endif; ?>
                         <?php else: ?>
                             <a href="<?= url('page_de_vente.php') ?>" class="tag tag-off" style="margin: 0;">🔧 Ajouter la maintenance</a>
                         <?php endif; ?>

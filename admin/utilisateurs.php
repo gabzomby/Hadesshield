@@ -37,8 +37,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // On garde la date d'origine si l'offre ne change pas
             if ($offre !== $cible['offre']) {
                 db()->prepare("UPDATE utilisateurs SET offre = ?, offre_depuis = datetime('now') WHERE id = ?")->execute([$offre, $id]);
+                activer_maintenance_si_pro($id, $offre);
             }
-            retour($id, 'Offre ' . OFFRES[$offre] . ' attribuée.');
+            retour($id, 'Offre ' . OFFRES[$offre] . ' attribuée' . ($offre === 'pro' && $offre !== $cible['offre'] ? ', maintenance incluse activée.' : '.'));
 
         case 'maintenance':
             $valeur = ($_POST['valeur'] ?? '') === '1' ? 1 : 0;

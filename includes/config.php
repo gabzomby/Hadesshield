@@ -271,8 +271,29 @@ function longueur(string $texte): int
 const OFFRES = ['starter' => 'Starter', 'pro' => 'Pro', 'entreprise' => 'Entreprise'];
 
 // Prix mensuels en euros. L'offre Entreprise est « sur devis » : 299 € est un montant moyen à ajuster.
-// Offre Pro : maintenance incluse la 1re année, puis 10 €/mois au lieu de 15 €.
 const PRIX = ['starter' => 19, 'pro' => 100, 'entreprise' => 299, 'maintenance' => 15];
+// Offre Pro : maintenance incluse la 1re année, puis 10 €/mois au lieu de 15 €.
+const PRIX_MAINTENANCE_PRO = 10;
+
+// Prix mensuel de la maintenance pour un client, à une date donnée (maintenant par défaut).
+// $offre_depuis est la date de début de l'offre, en UTC comme en base.
+function prix_maintenance(?string $offre, ?string $offre_depuis, ?int $quand = null): float
+{
+    if ($offre !== 'pro') {
+        return PRIX['maintenance'];
+    }
+    $fin_gratuite = strtotime(($offre_depuis ?? gmdate('Y-m-d H:i:s')) . ' UTC +1 year');
+    return ($quand ?? time()) < $fin_gratuite ? 0 : PRIX_MAINTENANCE_PRO;
+}
+
+// Passage à l'offre Pro : la maintenance, incluse, est activée d'office.
+function activer_maintenance_si_pro(int $utilisateur_id, ?string $offre): void
+{
+    if ($offre === 'pro') {
+        db()->prepare("UPDATE utilisateurs SET maintenance = 1, maintenance_depuis = datetime('now') WHERE id = ? AND maintenance = 0")
+            ->execute([$utilisateur_id]);
+    }
+}
 
 const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'contact' => 'Contact'];
 
