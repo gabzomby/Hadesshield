@@ -40,8 +40,8 @@ include __DIR__ . '/../includes/legal.php';
 
             <h2 id="prix">3. Prix</h2>
             <ul>
-                <li>Starter : 19 € par mois</li>
-                <li>Pro : 100 € par mois, option maintenance incluse pendant les 12 premiers mois, puis facturée 10 € par mois</li>
+                <li>Starter : <?= tarif(PRIX['starter']) ?> par mois</li>
+                <li>Pro : <?= tarif(PRIX['pro']) ?> par mois, option maintenance incluse pendant les 12 premiers mois, puis facturée 10 € par mois</li>
                 <li>Entreprise : sur devis</li>
                 <li>Option maintenance : 15 € par mois</li>
             </ul>

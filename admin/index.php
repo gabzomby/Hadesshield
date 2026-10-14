@@ -203,7 +203,7 @@ include __DIR__ . '/../includes/header.php';
                         <div class="rank-track"><div class="rank-bar bar-<?= $cle ?>" style="width: <?= round($r['mrr'] / $plus_grand * 100, 1) ?>%"></div></div>
                     </div>
                 <?php endforeach; ?>
-                <p class="muted" style="font-size: .82rem; margin-top: 6px;">Prix utilisés : Starter <?= PRIX['starter'] ?> €, Pro <?= PRIX['pro'] ?> €, Entreprise <?= PRIX['entreprise'] ?> € (moyenne sur devis), maintenance <?= PRIX['maintenance'] ?> € (Pro : incluse la 1re année, puis <?= PRIX_MAINTENANCE_PRO ?> €).</p>
+                <p class="muted" style="font-size: .82rem; margin-top: 6px;">Prix utilisés : Starter <?= tarif(PRIX['starter']) ?>, Pro <?= tarif(PRIX['pro']) ?>, Entreprise <?= tarif(PRIX['entreprise']) ?> (moyenne sur devis), maintenance <?= tarif(PRIX['maintenance']) ?> (Pro : incluse la 1re année, puis <?= PRIX_MAINTENANCE_PRO ?> €).</p>
             </div>
 
             <!-- Demandes en attente -->

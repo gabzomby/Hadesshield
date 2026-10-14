@@ -38,7 +38,7 @@ $flash = lire_flash();
             <div class="card price-card">
                 <h3>Starter</h3>
                 <p class="muted">Pour un site personnel</p>
-                <div class="price">19 € <small>/ mois</small></div>
+                <div class="price"><?= tarif(PRIX['starter']) ?> <small>/ mois</small></div>
                 <p class="muted">1 domaine · 500 000 requêtes / mois</p>
                 <ul class="features">
                     <li>Blocage des crawlers IA connus</li>
@@ -55,7 +55,7 @@ $flash = lire_flash();
                 <span class="badge">⭐ Le plus populaire</span>
                 <h3>Pro</h3>
                 <p class="muted">Pour les entreprises en croissance</p>
-                <div class="price">100 € <small>/ mois</small></div>
+                <div class="price"><?= tarif(PRIX['pro']) ?> <small>/ mois</small></div>
                 <p class="muted">5 domaines · 5 millions de requêtes / mois</p>
                 <ul class="features">
                     <li>Blocage des crawlers IA connus</li>

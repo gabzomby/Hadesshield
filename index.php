@@ -11,6 +11,7 @@
                 <a href="<?= url('page_de_vente.php') ?>" class="btn btn-primary">Voir les offres →</a>
                 <a href="<?= url('plusdinfo.php') ?>" class="btn btn-ghost">Comment ça marche</a>
             </div>
+            <p class="hero-prix">Commencez dès <strong><?= tarif(PRIX['starter']) ?></strong> / mois · sans engagement</p>
             <div class="hero-stats">
                 <div><strong>99,7 %</strong><span>Trafic IA détecté</span></div>
                 <div><strong>&lt; 5 ms</strong><span>Latence ajoutée</span></div>

@@ -125,7 +125,7 @@ switch ($commande) {
             // Un paiement par mois depuis le début de l'abonnement, -50 % sur le 2e mois
             if ($offre) {
                 for ($k = 0; ($t = strtotime("+$k months", $debut)) <= ($fin ?? time()); $k++) {
-                    enregistrer_paiement($id, $offre, $k === 1 ? PRIX[$offre] / 2 : PRIX[$offre], date('Y-m-d', $t));
+                    enregistrer_paiement($id, $offre, $k === 1 ? round(PRIX[$offre] / 2, 2) : PRIX[$offre], date('Y-m-d', $t));
                     $nb_paiements++;
                     $prix_m = prix_maintenance($offre, $utc($debut), $t);
                     if ($maintenance && $prix_m > 0) {

@@ -134,10 +134,10 @@ include __DIR__ . '/../includes/header.php';
                             <strong>
                                 <?php if ($d['type'] === 'offre'): ?>
                                     Passage à l'offre <?= e(OFFRES[$d['offre']] ?? $d['offre']) ?>
-                                    <span class="muted">(<?= euros(PRIX[$d['offre']] ?? 0) ?> / mois)</span>
+                                    <span class="muted">(<?= tarif(PRIX[$d['offre']] ?? 0) ?> / mois)</span>
                                 <?php elseif ($d['type'] === 'maintenance'): ?>
                                     <?php $prix_m = prix_maintenance($d['offre_actuelle'], $d['offre_actuelle_depuis']); ?>
-                                    Ajout de l'option maintenance <span class="muted">(<?= $prix_m > 0 ? euros($prix_m) . ' / mois' : 'incluse avec Pro la 1re année' ?>)</span>
+                                    Ajout de l'option maintenance <span class="muted">(<?= $prix_m > 0 ? tarif($prix_m) . ' / mois' : 'incluse avec Pro la 1re année' ?>)</span>
                                 <?php else: ?>
                                     <?= e($d['sujet'] ?? 'Message') ?>
                                 <?php endif; ?>

@@ -106,6 +106,8 @@ section { padding: 90px 0; }
 .hero h1 { font-size: clamp(2.3rem, 5vw, 3.6rem); line-height: 1.1; margin-bottom: 20px; font-weight: 800; }
 .hero p.lead { font-size: 1.15rem; color: var(--muted); margin-bottom: 32px; max-width: 520px; }
 .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+.hero-prix { margin-top: 16px; color: var(--muted); font-size: .95rem; }
+.hero-prix strong { color: var(--primary-2); font-size: 1.1rem; }
 .hero-stats { display: flex; gap: 36px; margin-top: 44px; flex-wrap: wrap; }
 .hero-stats strong { display: block; font-size: 1.6rem; }
 .hero-stats span { color: var(--muted); font-size: .9rem; }
