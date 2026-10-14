@@ -2,6 +2,7 @@
 require_once __DIR__ . '/config.php';
 // Page courante relative à la racine du site, ex. 'compte/dashboard.php'
 $page = $page_forcee ?? ltrim(str_replace('\\', '/', substr((string) realpath($_SERVER['SCRIPT_FILENAME']), strlen((string) realpath(__DIR__ . '/..')))), '/');
+journaliser_visite($page);
 ?>
 <!DOCTYPE html>
 <html lang="fr">

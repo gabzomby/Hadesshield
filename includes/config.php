@@ -449,6 +449,65 @@ function creer_site(int $utilisateur_id, string $domaine): string
     return $cle;
 }
 
+// ---------- Visites de notre propre site ----------
+// Tant que le trafic de hadesshield.com ne passe pas par le proxy, le site enregistre lui-même
+// ses pages vues dans le tableau de bord du site « hadesshield.com » (s'il est créé dans l'admin).
+// Le proxy ajoute l'en-tête X-HadesShield-Proxy : ces requêtes, déjà envoyées par lui, sont ignorées.
+const SITE_VITRINE = 'hadesshield.com';
+
+// Mêmes listes que le script d'envoi du proxy : [catégorie => motif du User-Agent]
+const DETECTION_UA = [
+    'agent_ia'         => '/(ChatGPT-User|Claude-User|Claude-Web|Perplexity-User)/i',
+    'crawler_ia'       => '/(GPTBot|OAI-SearchBot|ClaudeBot|anthropic-ai|CCBot|Google-Extended|PerplexityBot|Bytespider|Amazonbot|Applebot-Extended|cohere-ai|Diffbot|meta-externalagent|FacebookBot|ImagesiftBot|Omgilibot|YouBot)/i',
+    'moteur_recherche' => '/(Googlebot|bingbot|DuckDuckBot|YandexBot|Baiduspider|Applebot|Qwantify|Slurp)/i',
+    'scraper'          => '/(python-requests|python-urllib|scrapy|curl|wget|httpclient|libwww|aiohttp|go-http-client|okhttp|node-fetch|axios|headless|phantomjs|selenium|playwright|puppeteer|AhrefsBot|SemrushBot|MJ12bot|DotBot|PetalBot|DataForSeoBot|BLEXBot)/i',
+];
+
+// [catégorie, nom du robot ou null]
+function classer_user_agent(string $ua): array
+{
+    if ($ua === '') {
+        return ['autre', null];
+    }
+    foreach (DETECTION_UA as $categorie => $motif) {
+        if (preg_match($motif, $ua, $m)) {
+            return [$categorie, $m[1]];
+        }
+    }
+    return ['humain', null];
+}
+
+function journaliser_visite(string $page): void
+{
+    // Pas les pages internes : l'actualisation auto du tableau de bord se compterait elle-même
+    if (PHP_SAPI === 'cli' || isset($_SERVER['HTTP_X_HADESSHIELD_PROXY'])
+        || $page === 'compte/dashboard.php' || str_starts_with($page, 'admin/')) {
+        return;
+    }
+    $hote = preg_replace('/^www\./', '', strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));
+    if ($hote !== SITE_VITRINE) {
+        return;
+    }
+    try {
+        $stmt = db()->prepare('SELECT id FROM sites WHERE domaine IN (?, ?) ORDER BY id LIMIT 1');
+        $stmt->execute([SITE_VITRINE, 'www.' . SITE_VITRINE]);
+        $site_id = $stmt->fetchColumn();
+        if (!$site_id) {
+            return;
+        }
+        $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
+        [$categorie, $bot] = classer_user_agent($ua);
+        $pays = strtoupper($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '');
+        db()->prepare('INSERT INTO evenements (site_id, date, ip, methode, chemin, user_agent, verdict, categorie, bot, pays)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+            ->execute([$site_id, time(), $_SERVER['REMOTE_ADDR'] ?? null, $_SERVER['REQUEST_METHOD'] ?? 'GET',
+                substr(strtok($_SERVER['REQUEST_URI'] ?? '/', '?'), 0, 2000), $ua ?: null, 'autorise', $categorie, $bot,
+                preg_match('/^[A-Z]{2}$/', $pays) && !in_array($pays, ['XX', 'T1'], true) ? $pays : null]);
+    } catch (Throwable $e) {
+        // Le comptage ne doit jamais empêcher une page de s'afficher
+    }
+}
+
 // ---------- Collaborateurs ----------
 const MAX_COLLABORATEURS = 10; // par site
 
