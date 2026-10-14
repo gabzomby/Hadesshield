@@ -12,7 +12,8 @@ journaliser_visite($page);
     <title><?= isset($titre) ? $titre . ' — ' : '' ?>HadesShield</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="<?= url('css/style.css') ?>">
+    <!-- ?v= change à chaque modification du fichier : Cloudflare et les navigateurs rechargent la nouvelle version -->
+    <link rel="stylesheet" href="<?= url('css/style.css') ?>?v=<?= filemtime(__DIR__ . '/../css/style.css') ?>">
 </head>
 <body>
 <header class="site-header">
