@@ -13,7 +13,7 @@ include __DIR__ . '/../includes/legal.php';
             <p>Cette politique explique quelles données personnelles nous traitons, pourquoi, combien de temps nous les gardons et comment exercer vos droits, conformément au Règlement général sur la protection des données (RGPD) et à la loi Informatique et Libertés.</p>
 
             <h2>1. Responsable du traitement</h2>
-            <p><?= a_completer('Nom de la société') ?>, <?= a_completer('adresse du siège') ?>, joignable à <a href="mailto:contact@hadesshield.io">contact@hadesshield.io</a>.</p>
+            <p><?= a_completer('Nom de la société') ?>, <?= a_completer('adresse du siège') ?>, joignable à <a href="mailto:contact@hadesshield.com">contact@hadesshield.com</a>.</p>
             <p>Délégué à la protection des données : <?= a_completer('nom et contact du DPO, ou « non désigné »') ?>.</p>
 
             <h2>2. Données traitées et finalités</h2>
@@ -83,7 +83,7 @@ include __DIR__ . '/../includes/legal.php';
 
             <h2>8. Vos droits</h2>
             <p>Vous disposez d'un droit d'accès, de rectification, d'effacement, de limitation, de portabilité et d'opposition sur vos données, ainsi que du droit de définir des directives sur leur sort après votre décès.</p>
-            <p>Pour les exercer, écrivez-nous à <a href="mailto:contact@hadesshield.io">contact@hadesshield.io</a> en précisant votre demande. Nous répondons dans un délai d'un mois. Une pièce d'identité pourra vous être demandée en cas de doute raisonnable sur votre identité.</p>
+            <p>Pour les exercer, écrivez-nous à <a href="mailto:contact@hadesshield.com">contact@hadesshield.com</a> en précisant votre demande. Nous répondons dans un délai d'un mois. Une pièce d'identité pourra vous être demandée en cas de doute raisonnable sur votre identité.</p>
             <p>Si vous estimez que vos droits ne sont pas respectés, vous pouvez introduire une réclamation auprès de la CNIL : <a href="https://www.cnil.fr/fr/plaintes" target="_blank" rel="noopener">www.cnil.fr/fr/plaintes</a>.</p>
 
             <h2>9. Modifications</h2>

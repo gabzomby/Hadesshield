@@ -297,6 +297,32 @@ function activer_maintenance_si_pro(int $utilisateur_id, ?string $offre): void
 
 const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'contact' => 'Contact'];
 
+// ---------- Notification par e-mail des nouvelles demandes ----------
+const EMAIL_CONTACT = 'contact@hadesshield.com';
+
+// Prévient l'équipe par e-mail. Un échec d'envoi (ex. en local, sans serveur mail) ne bloque pas la demande.
+function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = null): void
+{
+    $sans_retour = fn(string $s) => str_replace(["\r", "\n"], ' ', $s);
+    $corps = '';
+    foreach ($lignes as $libelle => $valeur) {
+        if ($valeur !== null && $valeur !== '') {
+            $corps .= $libelle === 'Message' ? "\n$valeur\n" : "$libelle : $valeur\n";
+        }
+    }
+    $corps .= "\nÀ traiter dans l'admin : https://" . $sans_retour($_SERVER['HTTP_HOST'] ?? 'www.hadesshield.com') . url('admin/demandes.php') . "\n";
+
+    $entetes = [
+        'From: HadesShield <' . EMAIL_CONTACT . '>',
+        'Content-Type: text/plain; charset=UTF-8',
+        'Content-Transfer-Encoding: 8bit',
+    ];
+    if ($repondre_a && filter_var($repondre_a, FILTER_VALIDATE_EMAIL)) {
+        $entetes[] = 'Reply-To: ' . $repondre_a;   // « Répondre » écrit directement au client
+    }
+    @mail(EMAIL_CONTACT, '=?UTF-8?B?' . base64_encode($sans_retour($sujet)) . '?=', $corps, implode("\r\n", $entetes));
+}
+
 function enregistrer_paiement(int $utilisateur_id, string $produit, ?float $montant = null, ?string $date = null): int
 {
     db()->prepare('INSERT INTO paiements (utilisateur_id, date, produit, montant) VALUES (?, ?, ?, ?)')

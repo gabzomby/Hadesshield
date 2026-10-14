@@ -46,9 +46,11 @@ if ($type === 'contact') {
         aller($retour);
     }
 
+    $site = substr(trim($_POST['site'] ?? ''), 0, 200) ?: null;
     db()->prepare('INSERT INTO demandes (utilisateur_id, type, nom, email, site, sujet, message) VALUES (?, ?, ?, ?, ?, ?, ?)')
-        ->execute([utilisateur()['id'] ?? null, 'contact', substr($nom, 0, 100), $email,
-            substr(trim($_POST['site'] ?? ''), 0, 200) ?: null, $sujet, substr($message, 0, 5000)]);
+        ->execute([utilisateur()['id'] ?? null, 'contact', substr($nom, 0, 100), $email, $site, $sujet, substr($message, 0, 5000)]);
+    notifier_demande("[HadesShield] Contact : $sujet — $nom",
+        ['Nom' => $nom, 'E-mail' => $email, 'Site' => $site, 'Sujet' => $sujet, 'Message' => $message], $email);
     flash('Merci, votre message a bien été envoyé. Nous vous répondons rapidement.');
     aller($retour);
 }
@@ -83,6 +85,14 @@ if ($type === 'offre') {
 db()->prepare("DELETE FROM demandes WHERE utilisateur_id = ? AND type = ? AND statut = 'en_attente'")->execute([$moi['id'], $type]);
 db()->prepare('INSERT INTO demandes (utilisateur_id, type, offre, nom, email) VALUES (?, ?, ?, ?, ?)')
     ->execute([$moi['id'], $type, $offre, $moi['nom'], $moi['email']]);
+
+$quoi = $type === 'offre' ? 'Offre ' . OFFRES[$offre] : 'Option maintenance';
+notifier_demande("[HadesShield] Nouvelle demande : $quoi — {$moi['nom']}", [
+    'Demande' => $quoi,
+    'Client' => $moi['nom'],
+    'E-mail' => $moi['email'],
+    'Offre actuelle' => $moi['offre'] ? OFFRES[$moi['offre']] : 'aucune',
+], $moi['email']);
 
 flash($type === 'offre'
     ? 'Demande d\'offre ' . OFFRES[$offre] . ' envoyée. Notre équipe vous contacte pour l\'installation.'
