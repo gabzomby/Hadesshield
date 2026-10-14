@@ -58,6 +58,9 @@ switch ($commande) {
         if (!in_array($choix, ['oui', 'non'], true)) {
             stop('Choix : oui ou non');
         }
+        if ($choix === 'non' && est_super_admin($u['email'])) {
+            stop("{$u['email']} est super admin (défini dans includes/config.php) : ses droits ne peuvent pas être retirés.");
+        }
         db()->prepare('UPDATE utilisateurs SET est_admin = ? WHERE id = ?')->execute([$choix === 'oui' ? 1 : 0, $u['id']]);
         echo ($choix === 'oui' ? 'Droits admin donnés à ' : 'Droits admin retirés à ') . $u['email'] . PHP_EOL;
         break;

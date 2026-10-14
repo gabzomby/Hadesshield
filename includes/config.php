@@ -224,6 +224,15 @@ function utilisateur(): ?array
     return $_SESSION['utilisateur'] ?? null;
 }
 
+// Super admins : définis ici, dans le code. Ils sont toujours admin, et les autres admins
+// ne peuvent ni leur retirer leurs droits ni modifier leur compte.
+const SUPER_ADMINS = ['glc.zomby@gmail.com'];
+
+function est_super_admin(?string $email): bool
+{
+    return in_array(strtolower((string) $email), SUPER_ADMINS, true);
+}
+
 // Le droit admin est relu en base à chaque requête : un retrait de droits est immédiat.
 function est_admin(): bool
 {
@@ -231,9 +240,14 @@ function est_admin(): bool
     if ($admin === null) {
         $admin = false;
         if (utilisateur()) {
-            $stmt = db()->prepare('SELECT est_admin FROM utilisateurs WHERE id = ?');
+            $stmt = db()->prepare('SELECT est_admin, email FROM utilisateurs WHERE id = ?');
             $stmt->execute([utilisateur()['id']]);
-            $admin = (bool) $stmt->fetchColumn();
+            $u = $stmt->fetch();
+            $admin = $u && ($u['est_admin'] || est_super_admin($u['email']));
+            if ($u && !$u['est_admin'] && $admin) {
+                // Super admin dont le droit a été retiré en base : on le rétablit
+                db()->prepare('UPDATE utilisateurs SET est_admin = 1 WHERE id = ?')->execute([utilisateur()['id']]);
+            }
         }
     }
     return $admin;

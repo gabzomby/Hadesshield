@@ -22,6 +22,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!csrf_valide() || !$cible) {
         retour($id, 'Action refusée, veuillez réessayer.', 'erreur');
     }
+    // Le compte d'un super admin ne peut être modifié que par un super admin
+    if (est_super_admin($cible['email']) && !est_super_admin(utilisateur()['email'])) {
+        retour($id, 'Ce compte est un super admin : seul un super admin peut le modifier.', 'erreur');
+    }
 
     switch ($_POST['action'] ?? '') {
         case 'offre':
@@ -53,6 +57,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         case 'admin':
             if ($id === $moi_id) {
                 retour($id, 'Vous ne pouvez pas retirer vos propres droits admin.', 'erreur');
+            }
+            if (est_super_admin($cible['email'])) {
+                retour($id, 'Les droits d\'un super admin ne peuvent pas être retirés.', 'erreur');
             }
             $valeur = ($_POST['valeur'] ?? '') === '1' ? 1 : 0;
             db()->prepare('UPDATE utilisateurs SET est_admin = ? WHERE id = ?')->execute([$valeur, $id]);
@@ -195,7 +202,8 @@ include __DIR__ . '/../includes/header.php';
                         <div class="avatar"><?= e(strtoupper(substr($fiche['nom'], 0, 1))) ?></div>
                         <div>
                             <h2><?= e($fiche['nom']) ?>
-                                <?php if ($fiche['est_admin']): ?><span class="pill pill-admin">Admin</span><?php endif; ?>
+                                <?php if (est_super_admin($fiche['email'])): ?><span class="pill pill-admin">Super admin</span>
+                                <?php elseif ($fiche['est_admin']): ?><span class="pill pill-admin">Admin</span><?php endif; ?>
                                 <?php if ((int) $fiche['id'] === $moi_id): ?><span class="pill">Vous</span><?php endif; ?>
                             </h2>
                             <div class="muted"><?= e($fiche['email']) ?></div>
@@ -250,7 +258,9 @@ include __DIR__ . '/../includes/header.php';
                 <!-- Droits admin -->
                 <div class="card panel">
                     <h2>Droits administrateur</h2>
-                    <?php if ((int) $fiche['id'] === $moi_id): ?>
+                    <?php if (est_super_admin($fiche['email'])): ?>
+                        <p class="muted">Super admin : ses droits sont définis dans le code et ne peuvent pas être retirés.<?= est_super_admin(utilisateur()['email']) ? '' : ' Seul un super admin peut modifier ce compte.' ?></p>
+                    <?php elseif ((int) $fiche['id'] === $moi_id): ?>
                         <p class="muted">Vous êtes administrateur. Vous ne pouvez pas retirer vos propres droits.</p>
                     <?php else: ?>
                         <p class="muted" style="margin-bottom: 14px;">
