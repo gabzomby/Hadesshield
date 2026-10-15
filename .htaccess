@@ -16,7 +16,8 @@ RewriteCond %{REQUEST_URI} !^/\.well-known/
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
 # Derrière Cloudflare, OVH est toujours contacté en https : le protocole du visiteur
-# arrive dans l'en-tête X-Forwarded-Proto.
-RewriteCond %{HTTP:X-Forwarded-Proto} =http
+# arrive dans l'en-tête CF-Visitor, {"scheme":"http"} ou {"scheme":"https"}
+# (X-Forwarded-Proto est réécrit par le relais d'OVH, on ne peut pas s'y fier).
+RewriteCond %{HTTP:CF-Visitor} http[^s]
 RewriteCond %{REQUEST_URI} !^/\.well-known/
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
