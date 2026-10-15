@@ -439,7 +439,7 @@ const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'cont
 
 // ---------- Notification par e-mail des nouvelles demandes ----------
 // Adresse publique du site, et expéditeur des e-mails envoyés par le site
-const EMAIL_CONTACT = 'contact@hadesshield.com';
+const EMAIL_CONTACT = 'gabriel@hadesshield.com';
 
 // L'équipe : boîte mail qui reçoit les notifications => e-mail du compte admin de la même personne
 const EQUIPE = [

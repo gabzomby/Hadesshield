@@ -118,7 +118,7 @@ $moi_contact = utilisateur();
             <p class="muted" style="margin-bottom: 32px;">Notre équipe vous répond en général en moins d'une heure.</p>
             <div class="contact-item">
                 <div class="icon">✉️</div>
-                <div><strong>E-mail</strong><div class="muted">contact@hadesshield.com</div></div>
+                <div><strong>E-mail</strong><div class="muted"><?= EMAIL_CONTACT ?></div></div>
             </div>
             <div class="contact-item">
                 <div class="icon">🏢</div>
