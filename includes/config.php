@@ -249,8 +249,8 @@ function ip_dans_plage(string $ip, string $plage): bool
 // Le secret est rangé dans data/ (hors GitHub, inaccessible depuis le web) et se règle
 // depuis l'admin, onglet Proxy (super admin).
 const FICHIER_SECRET_PROXY = DATA_DIR . '/proxy_secret.txt';
-// Transition : tant que c'est true, l'ancienne valeur « 1 » est encore acceptée.
-const ACCEPTER_ANCIEN_EN_TETE_PROXY = true;
+// Transition terminée : l'ancienne valeur « 1 » n'est plus acceptée, seul le secret compte.
+const ACCEPTER_ANCIEN_EN_TETE_PROXY = false;
 
 function secret_proxy(): ?string
 {
