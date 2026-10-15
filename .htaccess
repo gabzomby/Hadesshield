@@ -8,6 +8,8 @@ RewriteEngine On
 # chez OVH sans passer par lui est refusée. Seul /.well-known/acme-challenge/ reste ouvert,
 # pour le renouvellement du certificat HTTPS.
 # Retour arrière rapide : remplacer ce fichier par .htaccess.avant-blocage-ovh (copie d'avant).
+# (REDIRECT_STATUS vide = requête d'origine : la page d'erreur 404.php, appelée en interne, n'est pas bloquée)
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteCond %{REMOTE_ADDR} !^37\.65\.33\.186$
 RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
 RewriteRule ^ - [F]
