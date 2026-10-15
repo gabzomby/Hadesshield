@@ -237,11 +237,21 @@ function ip_dans_plage(string $ip, string $plage): bool
     return $reste === 0 || ((ord($a[$octets]) & $masque) === (ord($b[$octets]) & $masque));
 }
 
+// Adresses de sortie de nos propres proxys HadesShield : de confiance comme Cloudflare.
+// Le trafic venant de ces adresses n'est jamais un visiteur humain.
+const IPS_PROXY_HADESSHIELD = ['37.65.33.186'];
+
 function ip_visiteur(): string
 {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
-    $cf = $_SERVER['HTTP_CF_CONNECTING_IP'] ?? '';
-    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+    $valide = fn($v) => is_string($v) && filter_var($v, FILTER_VALIDATE_IP) ? $v : null;
+
+    // Requête relayée par notre proxy : il transmet l'adresse du visiteur (X-Real-IP, sinon celle de Cloudflare)
+    if (in_array($ip, IPS_PROXY_HADESSHIELD, true)) {
+        return $valide($_SERVER['HTTP_X_REAL_IP'] ?? null) ?? $valide($_SERVER['HTTP_CF_CONNECTING_IP'] ?? null) ?? $ip;
+    }
+    $cf = $valide($_SERVER['HTTP_CF_CONNECTING_IP'] ?? null);
+    if ($cf) {
         foreach (PLAGES_CLOUDFLARE as $plage) {
             if (ip_dans_plage($ip, $plage)) {
                 return $cf;
@@ -484,6 +494,7 @@ const DUREE_EVENEMENTS_JOURS = 90;
 function purger_evenements(): void
 {
     db()->prepare('DELETE FROM evenements WHERE date < ?')->execute([time() - DUREE_EVENEMENTS_JOURS * 86400]);
+    nettoyer_journal_vitrine();
 }
 
 function hacher_cle_api(string $cle): string
@@ -528,11 +539,40 @@ function classer_user_agent(string $ua): array
     return ['humain', null];
 }
 
+// Sur notre propre site, l'espace client, l'admin et l'API ne sont pas des visites :
+// ils ne comptent pas dans le tableau de bord (le proxy les envoie aussi, l'API les écarte).
+const CHEMINS_HORS_STATS = ['/compte/', '/admin/', '/api/'];
+
+function chemin_compte_dans_stats(string $chemin): bool
+{
+    foreach (CHEMINS_HORS_STATS as $prefixe) {
+        if (str_starts_with($chemin, $prefixe)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Nettoie le journal de notre propre site : chemins internes et trafic de nos proxys classé « humain »
+// (corrige aussi les événements reçus avant ces règles).
+function nettoyer_journal_vitrine(): void
+{
+    $stmt = db()->prepare('SELECT id FROM sites WHERE domaine IN (?, ?)');
+    $stmt->execute([SITE_VITRINE, 'www.' . SITE_VITRINE]);
+    foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) as $site_id) {
+        $conditions = implode(' OR ', array_fill(0, count(CHEMINS_HORS_STATS), 'chemin LIKE ?'));
+        db()->prepare("DELETE FROM evenements WHERE site_id = ? AND ($conditions)")
+            ->execute([$site_id, ...array_map(fn($p) => $p . '%', CHEMINS_HORS_STATS)]);
+    }
+    $in = implode(',', array_fill(0, count(IPS_PROXY_HADESSHIELD), '?'));
+    db()->prepare("UPDATE evenements SET categorie = 'autre' WHERE categorie = 'humain' AND ip IN ($in)")
+        ->execute(IPS_PROXY_HADESSHIELD);
+}
+
 function journaliser_visite(string $page): void
 {
-    // Pas les pages internes : l'actualisation auto du tableau de bord se compterait elle-même
-    if (PHP_SAPI === 'cli' || isset($_SERVER['HTTP_X_HADESSHIELD_PROXY'])
-        || $page === 'compte/dashboard.php' || str_starts_with($page, 'admin/')) {
+    // Pas l'espace client ni l'admin : l'actualisation auto du tableau de bord se compterait elle-même
+    if (PHP_SAPI === 'cli' || isset($_SERVER['HTTP_X_HADESSHIELD_PROXY']) || !chemin_compte_dans_stats('/' . $page)) {
         return;
     }
     $hote = preg_replace('/^www\./', '', strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));

@@ -36,9 +36,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $cle = $_SERVER['HTTP_X_API_KEY'] ?? '';
-$stmt = db()->prepare('SELECT id FROM sites WHERE cle_api_hash = ?');
+$stmt = db()->prepare('SELECT id, domaine FROM sites WHERE cle_api_hash = ?');
 $stmt->execute([hacher_cle_api($cle)]);
-$site_id = $stmt->fetchColumn();
+$site = $stmt->fetch();
+$site_id = $site['id'] ?? null;
+// Notre propre site : l'espace client, l'admin et l'API ne comptent pas comme des visites
+$vitrine = $site && preg_replace('/^www\./', '', $site['domaine']) === SITE_VITRINE;
 if ($cle === '' || !$site_id) {
     repondre(401, ['ok' => false, 'erreur' => "Clé d'API invalide."]);
 }
@@ -67,13 +70,21 @@ foreach ($evenements as $i => $ev) {
     if (!$date) {
         repondre(422, ['ok' => false, 'erreur' => "Événement $i : date invalide."]);
     }
+    $chemin = texte($ev['chemin'] ?? null, 2000);
+    if ($vitrine && $chemin !== null && !chemin_compte_dans_stats($chemin)) {
+        continue;
+    }
     $categorie = isset(CATEGORIES[$ev['categorie'] ?? '']) ? $ev['categorie'] : 'autre';
+    // Requêtes émises par nos propres proxys (tests, vérifications) : jamais des humains
+    if ($categorie === 'humain' && in_array($ev['ip'] ?? '', IPS_PROXY_HADESSHIELD, true)) {
+        $categorie = 'autre';
+    }
     $score = isset($ev['score']) && is_numeric($ev['score']) ? max(0, min(1, (float) $ev['score'])) : null;
     $pays = texte($ev['pays'] ?? null, 2);
     $methode = texte($ev['methode'] ?? null, 10);
 
     $lignes[] = [$site_id, $date, texte($ev['ip'] ?? null, 45), $methode ? strtoupper($methode) : null,
-        texte($ev['chemin'] ?? null, 2000), texte($ev['user_agent'] ?? null, 500), $ev['verdict'], $categorie,
+        $chemin, texte($ev['user_agent'] ?? null, 500), $ev['verdict'], $categorie,
         texte($ev['bot'] ?? null, 100), $score, $pays ? strtoupper($pays) : null];
 }
 
@@ -90,4 +101,4 @@ if (random_int(1, 100) === 1) {
     purger_evenements();
 }
 
-repondre(201, ['ok' => true, 'enregistres' => count($lignes)]);
+repondre(201, ['ok' => true, 'enregistres' => count($lignes), 'ignores' => count($evenements) - count($lignes)]);
