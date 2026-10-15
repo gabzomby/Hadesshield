@@ -52,6 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     db()->prepare("UPDATE demandes SET statut = ?, traite_le = datetime('now'), traite_par = ?, etat_avant = ?, paiement_id = ? WHERE id = ?")
         ->execute([$decision, utilisateur()['id'], $etat_avant, $paiement_id, $d['id']]);
     db()->commit();
+    notifier_traitement($d, $decision, utilisateur());
 
     flash($decision === 'acceptee' ? 'Demande acceptée.' : 'Demande refusée.');
     header('Location: ' . url('admin/demandes.php') . '?' . http_build_query(array_intersect_key($_GET, ['statut' => 1, 'type' => 1])));

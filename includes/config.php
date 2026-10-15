@@ -438,7 +438,14 @@ function activer_maintenance_si_pro(int $utilisateur_id, ?string $offre): void
 const TYPES_DEMANDE = ['offre' => 'Offre', 'maintenance' => 'Maintenance', 'contact' => 'Contact'];
 
 // ---------- Notification par e-mail des nouvelles demandes ----------
+// Adresse publique du site, et expéditeur des e-mails envoyés par le site
 const EMAIL_CONTACT = 'contact@hadesshield.com';
+
+// L'équipe : boîte mail qui reçoit les notifications => e-mail du compte admin de la même personne
+const EQUIPE = [
+    'gabriel@hadesshield.com'   => 'glc.zomby@gmail.com',
+    'alexandre@hadesshield.com' => 'alexdu326@gmail.com',
+];
 
 function sans_retour_ligne(string $s): string
 {
@@ -465,8 +472,8 @@ function envoyer_mail(string $a, string $sujet, string $corps, ?string $repondre
     @mail($a, '=?UTF-8?B?' . base64_encode(sans_retour_ligne($sujet)) . '?=', $corps, implode("\r\n", $entetes));
 }
 
-// Prévient l'équipe d'une nouvelle demande.
-function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = null): void
+// Corps d'e-mail « Libellé : valeur » (le message éventuel en bloc), suivi d'un lien vers l'admin
+function corps_notification(array $lignes, string $lien_libelle): string
 {
     $corps = '';
     foreach ($lignes as $libelle => $valeur) {
@@ -474,8 +481,45 @@ function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = nu
             $corps .= $libelle === 'Message' ? "\n$valeur\n" : "$libelle : $valeur\n";
         }
     }
-    $corps .= "\nÀ traiter dans l'admin : " . url_absolue('admin/demandes.php') . "\n";
-    envoyer_mail(EMAIL_CONTACT, $sujet, $corps, $repondre_a);
+    return $corps . "\n$lien_libelle : " . url_absolue('admin/demandes.php') . "\n";
+}
+
+// Prévient toute l'équipe d'une nouvelle demande.
+function notifier_demande(string $sujet, array $lignes, ?string $repondre_a = null): void
+{
+    envoyer_mail(implode(', ', array_keys(EQUIPE)), $sujet, corps_notification($lignes, 'À traiter dans l\'admin'), $repondre_a);
+}
+
+// Résumé d'une demande pour les e-mails : « Offre Pro (annuelle) », « Option maintenance », « Message : … »
+function resume_demande(array $d): string
+{
+    return match ($d['type']) {
+        'offre'       => 'Offre ' . (OFFRES[$d['offre']] ?? $d['offre']) . ($d['sujet'] === 'annuel' ? ' (annuelle)' : ' (mensuelle)'),
+        'maintenance' => 'Option maintenance',
+        default       => 'Message : ' . ($d['sujet'] ?? 'contact'),
+    };
+}
+
+// Quand un admin traite une demande, les autres membres de l'équipe sont prévenus
+// (tous, si l'admin n'est pas dans l'équipe).
+function notifier_traitement(array $d, string $decision, array $admin): void
+{
+    $destinataires = array_keys(array_filter(EQUIPE, fn($compte) => strcasecmp($compte, $admin['email']) !== 0));
+    if (!$destinataires) {
+        return;
+    }
+    $action = $d['type'] === 'contact'
+        ? ($decision === 'acceptee' ? 'marqué comme traité' : 'archivé')
+        : ($decision === 'acceptee' ? 'accepté' : 'refusé');
+    envoyer_mail(implode(', ', $destinataires),
+        "[HadesShield] {$admin['nom']} a $action : " . resume_demande($d) . " — {$d['nom']}",
+        corps_notification([
+            'Décision' => ucfirst($action) . " par {$admin['nom']}",
+            'Demande'  => resume_demande($d),
+            'Client'   => $d['nom'],
+            'E-mail'   => $d['email'],
+            'Site'     => $d['site'],
+        ], 'Voir dans l\'admin'));
 }
 
 function enregistrer_paiement(int $utilisateur_id, string $produit, ?float $montant = null, ?string $date = null): int
