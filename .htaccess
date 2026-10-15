@@ -18,11 +18,13 @@ RewriteRule ^ - [F]
 # (sauf /.well-known/, utilisé par OVH pour renouveler le certificat HTTPS)
 RewriteCond %{HTTP_HOST} ^hadesshield\.com$ [NC]
 RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^(.*)$ https://www.hadesshield.com/$1 [R=301,L]
 
 # Redirige tout le trafic http:// vers https:// (certificat Let's Encrypt OVH).
 RewriteCond %{SERVER_PORT} 80
 RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 
 # Derrière Cloudflare, OVH est toujours contacté en https : le protocole du visiteur
@@ -30,4 +32,5 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
 # (X-Forwarded-Proto est réécrit par le relais d'OVH, on ne peut pas s'y fier).
 RewriteCond %{HTTP:CF-Visitor} http[^s]
 RewriteCond %{REQUEST_URI} !^/\.well-known/
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
 RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
