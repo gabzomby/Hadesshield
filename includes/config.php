@@ -115,6 +115,13 @@ function db(): PDO
         )');
         $pdo->exec('CREATE INDEX IF NOT EXISTS idx_collaborateurs_email ON site_collaborateurs (email)');
 
+        // Cache des vérifications DNS des robots de Google (voir est_ip_google)
+        $pdo->exec('CREATE TABLE IF NOT EXISTS verifications_dns (
+            ip        TEXT PRIMARY KEY,
+            google    INTEGER NOT NULL,
+            expire_le INTEGER NOT NULL
+        )');
+
         // Journal des requêtes vues par le proxy
         $pdo->exec("CREATE TABLE IF NOT EXISTS evenements (
             id          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -235,6 +242,40 @@ function ip_dans_plage(string $ip, string $plage): bool
     }
     $masque = (0xFF << (8 - $reste)) & 0xFF;
     return $reste === 0 || ((ord($a[$octets]) & $masque) === (ord($b[$octets]) & $masque));
+}
+
+// ---------- Secret partagé avec le proxy ----------
+// Le proxy prouve qu'une requête vient de lui avec l'en-tête X-HadesShield-Proxy: <secret>.
+// Le secret est rangé dans data/ (hors GitHub, inaccessible depuis le web) et se règle
+// depuis l'admin, onglet Proxy (super admin).
+const FICHIER_SECRET_PROXY = DATA_DIR . '/proxy_secret.txt';
+// Transition : tant que c'est true, l'ancienne valeur « 1 » est encore acceptée.
+const ACCEPTER_ANCIEN_EN_TETE_PROXY = true;
+
+function secret_proxy(): ?string
+{
+    $secret = is_file(FICHIER_SECRET_PROXY) ? trim((string) file_get_contents(FICHIER_SECRET_PROXY)) : '';
+    return $secret !== '' ? $secret : null;
+}
+
+function enregistrer_secret_proxy(string $secret): void
+{
+    file_put_contents(FICHIER_SECRET_PROXY, $secret, LOCK_EX);
+    @chmod(FICHIER_SECRET_PROXY, 0600);
+}
+
+// La requête a-t-elle été relayée par notre proxy ?
+function est_requete_proxy(): bool
+{
+    $valeur = $_SERVER['HTTP_X_HADESSHIELD_PROXY'] ?? null;
+    if (!is_string($valeur) || $valeur === '') {
+        return false;
+    }
+    $secret = secret_proxy();
+    if ($secret !== null && hash_equals($secret, $valeur)) {
+        return true;
+    }
+    return ACCEPTER_ANCIEN_EN_TETE_PROXY && $valeur === '1';
 }
 
 // Adresses de sortie de nos propres proxys HadesShield : de confiance comme Cloudflare.
@@ -494,6 +535,7 @@ const DUREE_EVENEMENTS_JOURS = 90;
 function purger_evenements(): void
 {
     db()->prepare('DELETE FROM evenements WHERE date < ?')->execute([time() - DUREE_EVENEMENTS_JOURS * 86400]);
+    db()->prepare('DELETE FROM verifications_dns WHERE expire_le < ?')->execute([time()]);
     nettoyer_journal_vitrine();
 }
 
@@ -514,7 +556,7 @@ function creer_site(int $utilisateur_id, string $domaine): string
 // ---------- Visites de notre propre site ----------
 // Tant que le trafic de hadesshield.com ne passe pas par le proxy, le site enregistre lui-même
 // ses pages vues dans le tableau de bord du site « hadesshield.com » (s'il est créé dans l'admin).
-// Le proxy ajoute l'en-tête X-HadesShield-Proxy : ces requêtes, déjà envoyées par lui, sont ignorées.
+// Le proxy ajoute l'en-tête X-HadesShield-Proxy (voir est_requete_proxy) : ces requêtes, déjà envoyées par lui, sont ignorées.
 const SITE_VITRINE = 'hadesshield.com';
 
 // Mêmes listes que le script d'envoi du proxy : [catégorie => motif du User-Agent]
@@ -537,6 +579,83 @@ function classer_user_agent(string $ua): array
         }
     }
     return ['humain', null];
+}
+
+// ---------- Vérification des robots de Google ----------
+// N'importe qui peut écrire « Googlebot » dans son User-Agent. Un vrai robot Google se vérifie par DNS :
+// le DNS inverse de son IP finit par googlebot.com ou google.com, et ce nom renvoie bien la même IP.
+const DOMAINES_GOOGLE = ['.googlebot.com', '.google.com'];
+// Plages d'exploration de Google : une IP de ces plages avec un User-Agent ordinaire est vérifiée aussi
+const PLAGES_GOOGLE = ['66.249.64.0/19', '2001:4860:4801::/48'];
+const UA_SE_DISANT_GOOGLE = '/(Googlebot|Google-InspectionTool|GoogleOther|Storebot-Google|AdsBot-Google|APIs-Google|Mediapartners-Google)/i';
+const MAX_VERIFICATIONS_DNS = 20; // nouvelles résolutions par requête : au-delà, résultat « non vérifié »
+
+// true = IP de Google, false = non, null = pas vérifiée (trop de résolutions dans cette requête)
+function est_ip_google(string $ip): ?bool
+{
+    static $resolutions = 0;
+    if (!filter_var($ip, FILTER_VALIDATE_IP)) {
+        return false;
+    }
+    $stmt = db()->prepare('SELECT google FROM verifications_dns WHERE ip = ? AND expire_le > ?');
+    $stmt->execute([$ip, time()]);
+    $cache = $stmt->fetchColumn();
+    if ($cache !== false) {
+        return (bool) $cache;
+    }
+    if (++$resolutions > MAX_VERIFICATIONS_DNS) {
+        return null;
+    }
+
+    $google = false;
+    // DNS inverse interrogé directement (gethostbyaddr peut prendre plusieurs secondes)
+    $binaire = inet_pton($ip);
+    $inverse = strlen($binaire) === 4
+        ? implode('.', array_reverse(explode('.', $ip))) . '.in-addr.arpa'
+        : implode('.', array_reverse(str_split(bin2hex($binaire)))) . '.ip6.arpa';
+    foreach (@dns_get_record($inverse, DNS_PTR) ?: [] as $ptr) {
+        $nom = strtolower(rtrim($ptr['target'] ?? '', '.'));
+        foreach (DOMAINES_GOOGLE as $domaine) {
+            if (str_ends_with($nom, $domaine)) {
+                // DNS direct : le nom doit renvoyer exactement cette IP
+                $ips = strlen($binaire) === 4
+                    ? array_column(@dns_get_record($nom, DNS_A) ?: [], 'ip')
+                    : array_column(@dns_get_record($nom, DNS_AAAA) ?: [], 'ipv6');
+                foreach ($ips as $candidate) {
+                    if (inet_pton($candidate) === inet_pton($ip)) {
+                        $google = true;
+                    }
+                }
+                break;
+            }
+        }
+    }
+    // Résultat gardé 7 jours (1 jour si négatif, au cas où le DNS aurait échoué)
+    db()->prepare('INSERT OR REPLACE INTO verifications_dns (ip, google, expire_le) VALUES (?, ?, ?)')
+        ->execute([$ip, (int) $google, time() + ($google ? 7 : 1) * 86400]);
+    return $google;
+}
+
+// Corrige la catégorie d'une requête selon la vérification Google : [catégorie, robot]
+function verifier_robot_google(?string $ip, string $categorie, ?string $bot, ?string $ua): array
+{
+    $se_dit_google = preg_match(UA_SE_DISANT_GOOGLE, (string) $ua, $m) || ($bot && preg_match(UA_SE_DISANT_GOOGLE, $bot, $m));
+    if ($se_dit_google) {
+        $verdict = $ip ? est_ip_google($ip) : false;
+        if ($verdict === true) {
+            return ['moteur_recherche', $m[1]];
+        }
+        return $verdict === false ? ['scraper', 'Faux ' . $m[1]] : ['autre', $m[1] . ' (non vérifié)'];
+    }
+    // IP des plages de Google avec un User-Agent ordinaire (rendu de page, outils Google…)
+    if ($ip && $categorie === 'humain') {
+        foreach (PLAGES_GOOGLE as $plage) {
+            if (ip_dans_plage($ip, $plage)) {
+                return est_ip_google($ip) ? ['moteur_recherche', 'Google'] : [$categorie, $bot];
+            }
+        }
+    }
+    return [$categorie, $bot];
 }
 
 // Sur notre propre site, l'espace client, l'admin et l'API ne sont pas des visites :
@@ -572,7 +691,7 @@ function nettoyer_journal_vitrine(): void
 function journaliser_visite(string $page): void
 {
     // Pas l'espace client ni l'admin : l'actualisation auto du tableau de bord se compterait elle-même
-    if (PHP_SAPI === 'cli' || isset($_SERVER['HTTP_X_HADESSHIELD_PROXY']) || !chemin_compte_dans_stats('/' . $page)) {
+    if (PHP_SAPI === 'cli' || est_requete_proxy() || !chemin_compte_dans_stats('/' . $page)) {
         return;
     }
     $hote = preg_replace('/^www\./', '', strtolower(explode(':', $_SERVER['HTTP_HOST'] ?? '')[0]));
@@ -588,6 +707,7 @@ function journaliser_visite(string $page): void
         }
         $ua = substr($_SERVER['HTTP_USER_AGENT'] ?? '', 0, 500);
         [$categorie, $bot] = classer_user_agent($ua);
+        [$categorie, $bot] = verifier_robot_google(ip_visiteur(), $categorie, $bot, $ua);
         $pays = strtoupper($_SERVER['HTTP_CF_IPCOUNTRY'] ?? '');
         db()->prepare('INSERT INTO evenements (site_id, date, ip, methode, chemin, user_agent, verdict, categorie, bot, pays)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')

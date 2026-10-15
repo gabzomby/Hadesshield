@@ -6,6 +6,9 @@ $onglets = [
     'utilisateurs' => ['Utilisateurs', url('admin/utilisateurs.php')],
     'demandes'     => ['Demandes', url('admin/demandes.php')],
 ];
+if (est_super_admin(utilisateur()['email'])) {
+    $onglets['proxy'] = ['Proxy', url('admin/proxy.php')];
+}
 ?>
 <nav class="admin-tabs" aria-label="Administration">
     <?php foreach ($onglets as $cle => [$libelle, $lien]): ?>

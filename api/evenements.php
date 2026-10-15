@@ -75,6 +75,10 @@ foreach ($evenements as $i => $ev) {
         continue;
     }
     $categorie = isset(CATEGORIES[$ev['categorie'] ?? '']) ? $ev['categorie'] : 'autre';
+    $ip = texte($ev['ip'] ?? null, 45);
+    $bot = texte($ev['bot'] ?? null, 100);
+    // Un « Googlebot » n'est classé comme tel que si son IP appartient vraiment à Google (DNS)
+    [$categorie, $bot] = verifier_robot_google($ip, $categorie, $bot, texte($ev['user_agent'] ?? null, 500));
     // Requêtes émises par nos propres proxys (tests, vérifications) : jamais des humains
     if ($categorie === 'humain' && in_array($ev['ip'] ?? '', IPS_PROXY_HADESSHIELD, true)) {
         $categorie = 'autre';
@@ -83,9 +87,9 @@ foreach ($evenements as $i => $ev) {
     $pays = texte($ev['pays'] ?? null, 2);
     $methode = texte($ev['methode'] ?? null, 10);
 
-    $lignes[] = [$site_id, $date, texte($ev['ip'] ?? null, 45), $methode ? strtoupper($methode) : null,
+    $lignes[] = [$site_id, $date, $ip, $methode ? strtoupper($methode) : null,
         $chemin, texte($ev['user_agent'] ?? null, 500), $ev['verdict'], $categorie,
-        texte($ev['bot'] ?? null, 100), $score, $pays ? strtoupper($pays) : null];
+        $bot, $score, $pays ? strtoupper($pays) : null];
 }
 
 $insert = db()->prepare('INSERT INTO evenements (site_id, date, ip, methode, chemin, user_agent, verdict, categorie, bot, score, pays)
