@@ -1,5 +1,7 @@
 <?php
+require_once __DIR__ . '/includes/config.php';
 $titre = 'Offres';
+$description = 'Tarifs HadesShield : Starter à ' . tarif(PRIX['starter']) . ' / mois, Pro à ' . tarif(PRIX['pro']) . ' / mois, Entreprise sur devis. -20 % à l\'année, sans engagement, installation incluse.';
 include __DIR__ . '/includes/header.php';
 
 // Bouton de demande : formulaire POST vers demande.php (connexion requise)

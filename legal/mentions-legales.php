@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
 $titre = 'Mentions légales';
+$description = 'Mentions légales du site HadesShield : éditeur, hébergeur et contact.';
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/legal.php';
 ?>

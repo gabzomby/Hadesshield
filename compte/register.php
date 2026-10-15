@@ -56,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $titre = 'Inscription';
+$description = 'Créez votre compte HadesShield et protégez votre site contre les crawlers et agents d\'IA en quelques minutes.';
 include __DIR__ . '/../includes/header.php';
 ?>
 

@@ -1,5 +1,6 @@
 <?php
 $titre = "Plus d'infos";
+$description = 'Comment HadesShield détecte et bloque les crawlers et agents d\'IA devant votre site : fonctionnement du proxy, questions fréquentes et contact.';
 include __DIR__ . '/includes/header.php';
 $flash = lire_flash();
 $moi_contact = utilisateur();

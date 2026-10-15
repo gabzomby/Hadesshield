@@ -3,6 +3,13 @@
 
 date_default_timezone_set('Europe/Paris');
 
+// ---------- Référencement (Google) ----------
+// Adresse officielle du site : celle que Google doit indexer (les autres redirigent vers elle)
+const SITE_URL = 'https://www.hadesshield.com';
+// Code de vérification Google Search Console (méthode « Balise HTML ») : coller ici la valeur
+// de content="…" donnée par Google. Inutile si le domaine est vérifié par un enregistrement DNS.
+const GOOGLE_VERIFICATION = '';
+
 // ---------- Adresses ----------
 // Chemin du site depuis la racine du serveur ('' en local, '/monsite' si installé dans un sous-dossier)
 $racine_site = strtolower(str_replace('\\', '/', (string) realpath(__DIR__ . '/..')));

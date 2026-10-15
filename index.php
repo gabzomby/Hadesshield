@@ -1,4 +1,9 @@
-<?php $titre = 'Accueil'; include __DIR__ . '/includes/header.php'; ?>
+<?php
+require_once __DIR__ . '/includes/config.php';
+$titre = 'Accueil';
+$description = 'Bloquez GPTBot, ClaudeBot et les autres robots d\'IA qui aspirent votre site. HadesShield installe un proxy anti-IA devant votre site, sans captcha pour vos visiteurs. Dès ' . tarif(PRIX['starter']) . ' / mois.';
+include __DIR__ . '/includes/header.php';
+?>
 
 <!-- Hero -->
 <section class="hero">

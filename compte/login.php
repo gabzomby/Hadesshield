@@ -37,6 +37,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $titre = 'Connexion';
+$description = 'Connectez-vous à votre espace client HadesShield pour suivre les robots d\'IA bloqués sur votre site.';
 include __DIR__ . '/../includes/header.php';
 ?>
 

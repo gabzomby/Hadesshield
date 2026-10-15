@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../includes/config.php';
 $titre = 'Politique de confidentialité';
+$description = 'Politique de confidentialité HadesShield : données collectées, finalités, durées de conservation et exercice de vos droits (RGPD).';
 include __DIR__ . '/../includes/header.php';
 include __DIR__ . '/../includes/legal.php';
 ?>

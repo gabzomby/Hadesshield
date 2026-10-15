@@ -1,0 +1,10 @@
+# Pages que les moteurs de recherche peuvent explorer
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /compte/dashboard.php
+Disallow: /compte/index.php
+Disallow: /compte/collaborateurs.php
+Disallow: /demande.php
+
+Sitemap: https://www.hadesshield.com/sitemap.xml
