@@ -4,13 +4,13 @@ ErrorDocument 404 /404.php
 
 RewriteEngine On
 
-# Accès réservé au proxy HadesShield (37.65.34.145) : toute requête qui arrive directement
+# Accès réservé au proxy HadesShield (37.65.35.5) : toute requête qui arrive directement
 # chez OVH sans passer par lui est refusée. Seul /.well-known/acme-challenge/ reste ouvert,
 # pour le renouvellement du certificat HTTPS.
 # Retour arrière rapide : remplacer ce fichier par .htaccess.avant-blocage-ovh (copie d'avant).
 # (REDIRECT_STATUS vide = requête d'origine : la page d'erreur 404.php, appelée en interne, n'est pas bloquée)
 RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{REMOTE_ADDR} !^37\.65\.34\.145$
+RewriteCond %{REMOTE_ADDR} !^37\.65\.35\.5$
 RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
 RewriteRule ^ - [F]
 
