@@ -4,14 +4,17 @@ ErrorDocument 404 /404.php
 
 RewriteEngine On
 
-# Accès réservé au proxy HadesShield (37.65.32.24) : toute requête qui arrive directement
-# chez OVH sans passer par lui est refusée. Seul /.well-known/acme-challenge/ reste ouvert,
-# pour le renouvellement du certificat HTTPS.
+# Accès réservé au proxy HadesShield, quelle que soit son IP (elle change à chaque redémarrage) :
+# toute requête qui arrive chez OVH sans l'en-tête X-HadesShield-Proxy est refusée.
+# Ce premier filtre ne regarde que la présence de l'en-tête ; la valeur exacte du secret
+# (rangé dans data/, hors GitHub) est vérifiée par PHP sur chaque page (includes/config.php).
+# Restent ouverts : /.well-known/acme-challenge/ (certificat HTTPS) et /api/ (protégée par sa clé d'API).
 # Retour arrière rapide : remplacer ce fichier par .htaccess.avant-blocage-ovh (copie d'avant).
 # (REDIRECT_STATUS vide = requête d'origine : la page d'erreur 404.php, appelée en interne, n'est pas bloquée)
 RewriteCond %{ENV:REDIRECT_STATUS} ^$
-RewriteCond %{REMOTE_ADDR} !^37\.65\.32\.24$
+RewriteCond %{HTTP:X-HadesShield-Proxy} ^$
 RewriteCond %{REQUEST_URI} !^/\.well-known/acme-challenge/
+RewriteCond %{REQUEST_URI} !^/api/
 RewriteRule ^ - [F]
 
 # Adresse unique pour Google : hadesshield.com -> https://www.hadesshield.com

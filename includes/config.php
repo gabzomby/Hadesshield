@@ -278,17 +278,38 @@ function est_requete_proxy(): bool
     return ACCEPTER_ANCIEN_EN_TETE_PROXY && $valeur === '1';
 }
 
-// Adresses de sortie de nos propres proxys HadesShield : de confiance comme Cloudflare.
-// Le trafic venant de ces adresses n'est jamais un visiteur humain.
+// Dernière adresse de sortie connue de notre proxy HadesShield. Elle change à chaque redémarrage :
+// elle ne sert plus à autoriser l'accès (c'est le secret ci-dessus qui compte), seulement à
+// ne pas compter les requêtes de test du proxy comme des visiteurs humains.
 const IPS_PROXY_HADESSHIELD = ['37.65.32.24'];
+
+// Accès direct au serveur (sans passer par le proxy) : refusé sur toutes les pages PHP.
+// Le .htaccess refuse déjà les requêtes sans l'en-tête ; ici on vérifie que sa valeur est le bon secret.
+function bloquer_acces_direct(): void
+{
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '');
+    if (PHP_SAPI === 'cli'
+        || est_requete_proxy()
+        || str_contains($script, '/api/')    // l'API a sa propre clé d'API
+        || secret_proxy() === null           // pas encore de secret réglé (installation neuve, test local)
+        // Site lancé en local ou sur le réseau de la maison (lancer.bat, lancer-reseau.bat)
+        || ($ip !== '' && !filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE))) {
+        return;
+    }
+    http_response_code(403);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit('Accès interdit');
+}
 
 function ip_visiteur(): string
 {
     $ip = $_SERVER['REMOTE_ADDR'] ?? '';
     $valide = fn($v) => is_string($v) && filter_var($v, FILTER_VALIDATE_IP) ? $v : null;
 
-    // Requête relayée par notre proxy : il transmet l'adresse du visiteur (X-Real-IP, sinon celle de Cloudflare)
-    if (in_array($ip, IPS_PROXY_HADESSHIELD, true)) {
+    // Requête relayée par notre proxy (prouvé par le secret, pas par son IP qui change) :
+    // il transmet l'adresse du visiteur (X-Real-IP, sinon celle de Cloudflare)
+    if (est_requete_proxy() || in_array($ip, IPS_PROXY_HADESSHIELD, true)) {
         return $valide($_SERVER['HTTP_X_REAL_IP'] ?? null) ?? $valide($_SERVER['HTTP_CF_CONNECTING_IP'] ?? null) ?? $ip;
     }
     $cf = $valide($_SERVER['HTTP_CF_CONNECTING_IP'] ?? null);
@@ -782,3 +803,5 @@ function sites_visibles(array $moi): array
     }
     return $sites;
 }
+
+bloquer_acces_direct();
