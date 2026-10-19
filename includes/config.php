@@ -280,7 +280,7 @@ function est_requete_proxy(): bool
 
 // Adresses de sortie de nos propres proxys HadesShield : de confiance comme Cloudflare.
 // Le trafic venant de ces adresses n'est jamais un visiteur humain.
-const IPS_PROXY_HADESSHIELD = ['37.65.35.5'];
+const IPS_PROXY_HADESSHIELD = ['37.65.32.24'];
 
 function ip_visiteur(): string
 {
